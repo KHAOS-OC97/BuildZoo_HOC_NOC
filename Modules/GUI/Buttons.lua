@@ -7,8 +7,9 @@
 
 local Buttons = {}
 
-local BASE_Y = 0.52
-local STEP   = 0.06
+-- Posições absolutas em pixels: toggles terminam em ~200px, botões começam em 207px
+local BTN_START = 207
+local BTN_STEP  = 32
 
 local function makeBtn(parent, text, pos, cfg)
     local btn                    = Instance.new("TextButton", parent)
@@ -39,17 +40,14 @@ function Buttons.Build(Main, ctx)
 
     local strokes = {}   -- rastreia strokes para o loop RGB
 
-    local function addBtn(text, pos)
-        local btn, stroke = makeBtn(Main, text, pos, cfg)
+    local function addBtn(text, yPixel)
+        local btn, stroke = makeBtn(Main, text, UDim2.new(0.05, 0, 0, yPixel), cfg)
         table.insert(strokes, stroke)
         return btn
     end
 
     -- ── WalkSpeed ─────────────────────────────────────────────────────────────
-    local SpeedBtn = addBtn(
-        "WALKSPEED: " .. tostring(_G_WalkSpeed),
-        UDim2.new(0.05, 0, BASE_Y, 0)
-    )
+    local SpeedBtn = addBtn("WALKSPEED: " .. tostring(_G_WalkSpeed), BTN_START)
     stored.SpeedBtn = SpeedBtn
     SpeedBtn.MouseButton1Click:Connect(function()
         local newSpeed = Movement.CycleSpeed(cfg.WALK_SPEED_CYCLE)
@@ -57,10 +55,7 @@ function Buttons.Build(Main, ctx)
     end)
 
     -- ── Loja de Frutas ────────────────────────────────────────────────────────
-    local FruitBtn = addBtn(
-        "OPEN FRUIT SHOP",
-        UDim2.new(0.05, 0, BASE_Y + STEP * 1.5, 0)
-    )
+    local FruitBtn = addBtn("OPEN FRUIT SHOP", BTN_START + BTN_STEP)
     stored.FruitBtn = FruitBtn
     FruitBtn.MouseButton1Click:Connect(function()
         pcall(function()
@@ -86,25 +81,18 @@ function Buttons.Build(Main, ctx)
         end)
     end)
 
-    -- ── Server Hop ────────────────────────────────────────────────────────────
-    local HopBtn = addBtn(
-        "SERVER HOP (EXTRAÇÃO)",
-        UDim2.new(0.05, 0, BASE_Y + STEP * 3, 0)
-    )
-    stored.HopBtn = HopBtn
-    HopBtn.MouseButton1Click:Connect(function()
-        ServerHop.Hop()
-    end)
-
     -- ── TP para Aliado ────────────────────────────────────────────────────────
-    -- Posição com offset de pixel para ocupar a lacuna entre HopBtn e DropdownBtn
-    local TPBtn = addBtn(
-        "🚀 EXTRAÇÃO TP",
-        UDim2.new(0.05, 0, BASE_Y + STEP * 3.5, -125)
-    )
+    local TPBtn = addBtn("🚀 EXTRAÇÃO TP", BTN_START + BTN_STEP * 2)
     stored.TPBtn = TPBtn
     TPBtn.MouseButton1Click:Connect(function()
         Teleport.ToAlly()
+    end)
+
+    -- ── Server Hop ────────────────────────────────────────────────────────────
+    local HopBtn = addBtn("SERVER HOP (EXTRAÇÃO)", BTN_START + BTN_STEP * 3)
+    stored.HopBtn = HopBtn
+    HopBtn.MouseButton1Click:Connect(function()
+        ServerHop.Hop()
     end)
 
     -- ── Loop RGB dos strokes ──────────────────────────────────────────────────

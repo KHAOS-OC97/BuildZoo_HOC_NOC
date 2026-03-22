@@ -11,8 +11,9 @@
 
 local FruitMenu = {}
 
-local BASE_Y = 0.65
-local STEP   = 0.06
+-- Botões de ação terminam em ~335px (207 + 32*4 = 335)
+local DROPDOWN_Y  = 335
+local AUTOBUY_Y   = 363
 
 function FruitMenu.Build(Main, ctx)
     local cfg    = ctx.Config
@@ -30,7 +31,7 @@ function FruitMenu.Build(Main, ctx)
     -- ── Botão dropdown ────────────────────────────────────────────────────────
     local DropdownBtn                  = Instance.new("TextButton", Main)
     DropdownBtn.Size                   = UDim2.new(0.9, 0, 0, 25)
-    DropdownBtn.Position               = UDim2.new(0.05, 0, BASE_Y + STEP * 4.5, 0)
+    DropdownBtn.Position               = UDim2.new(0.05, 0, 0, DROPDOWN_Y)
     DropdownBtn.BackgroundColor3       = cfg.Colors.Dark
     DropdownBtn.BackgroundTransparency = 0.3
     DropdownBtn.Text                   = "▼ Select Fruits (0)"
@@ -42,7 +43,7 @@ function FruitMenu.Build(Main, ctx)
     -- ── AUTO BUY ──────────────────────────────────────────────────────────────
     local AutoBuyBtn                   = Instance.new("TextButton", Main)
     AutoBuyBtn.Size                    = UDim2.new(0.4, 0, 0, 22)
-    AutoBuyBtn.Position                = UDim2.new(0.05, 0, BASE_Y + STEP * 6, 0)
+    AutoBuyBtn.Position                = UDim2.new(0.05, 0, 0, AUTOBUY_Y)
     AutoBuyBtn.BackgroundColor3        = _G_AutoBuy and cfg.Colors.Green or cfg.Colors.DarkRed
     AutoBuyBtn.Text                    = _G_AutoBuy and "AUTO BUY: ON" or "AUTO BUY: OFF"
     AutoBuyBtn.TextColor3              = cfg.Colors.White
@@ -60,7 +61,7 @@ function FruitMenu.Build(Main, ctx)
     -- ── Amount ────────────────────────────────────────────────────────────────
     local AmountSmallBtn                   = Instance.new("TextButton", Main)
     AmountSmallBtn.Size                    = UDim2.new(0.4, 0, 0, 20)
-    AmountSmallBtn.Position                = UDim2.new(0.55, 0, BASE_Y + STEP * 6, 0)
+    AmountSmallBtn.Position                = UDim2.new(0.55, 0, 0, AUTOBUY_Y)
     AmountSmallBtn.BackgroundColor3        = Color3.fromRGB(10, 10, 10)
     AmountSmallBtn.BackgroundTransparency  = 0.2
     AmountSmallBtn.Text                    = "Amt: " .. tostring(_G_BuyAmount)
@@ -80,7 +81,7 @@ function FruitMenu.Build(Main, ctx)
     -- ── Frame do menu (expande/colapsa com tween) ─────────────────────────────
     local Menu                  = Instance.new("Frame", Main)
     Menu.Size                   = UDim2.new(0.9, 0, 0, 0)
-    Menu.Position               = UDim2.new(0.05, 0, BASE_Y + STEP * 5, 0)
+    Menu.Position               = UDim2.new(0.05, 0, 0, DROPDOWN_Y + 28)
     Menu.BackgroundColor3       = cfg.Colors.DarkMid
     Menu.BorderSizePixel        = 0
     Menu.Visible                = false

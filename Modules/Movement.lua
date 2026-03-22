@@ -35,7 +35,7 @@ function Movement.Init(ctx)
     end)
 end
 
--- Avança para o próximo valor no ciclo de velocidades e retorna o novo valor
+-- Avança para o próximo valor no ciclo de velocidades, aplica imediatamente e retorna
 function Movement.CycleSpeed(presets)
     local nextIdx = 1
     for i, v in ipairs(presets) do
@@ -45,6 +45,16 @@ function Movement.CycleSpeed(presets)
         end
     end
     _G_WalkSpeed = presets[nextIdx]
+    -- Aplica imediatamente sem esperar o próximo Stepped
+    if _svc then
+        local char = _svc.LocalPlayer and _svc.LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then
+                pcall(function() hum.WalkSpeed = _G_WalkSpeed end)
+            end
+        end
+    end
     return _G_WalkSpeed
 end
 
