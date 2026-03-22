@@ -86,6 +86,41 @@ function GUICore.Build(ctx)
     Title.TextSize                 = 14
     Title.BackgroundTransparency   = 1
 
+    -- ── Botão START/STOP (Sessão única) ───────────────────────────────────────
+    local StartStopBtn                 = Instance.new("TextButton", Main)
+    StartStopBtn.Size                  = UDim2.new(0.9, 0, 0, 28)
+    StartStopBtn.Position              = UDim2.new(0.05, 0, 0.08, 0)
+    StartStopBtn.Font                  = Enum.Font.GothamBold
+    StartStopBtn.TextSize              = 12
+    StartStopBtn.Border                = 0
+    Instance.new("UICorner", StartStopBtn).CornerRadius = UDim.new(0, 8)
+
+    local function updateStartStopBtn()
+        if _G_Running then
+            StartStopBtn.Text           = "🟢 SCRIPT ATIVO"
+            StartStopBtn.BackgroundColor3 = cfg.Colors.Green
+            StartStopBtn.TextColor3       = cfg.Colors.White
+        else
+            StartStopBtn.Text           = "🔴 SCRIPT PARADO"
+            StartStopBtn.BackgroundColor3 = cfg.Colors.Red
+            StartStopBtn.TextColor3       = cfg.Colors.White
+        end
+    end
+
+    updateStartStopBtn()
+
+    StartStopBtn.MouseButton1Click:Connect(function()
+        if _G_Running then
+            _G_Running = false
+        else
+            _G_Running = true
+            _G_SessionID = (_G_SessionID or 0) + 1
+        end
+        updateStartStopBtn()
+    end)
+
+    stored.StartStopBtn = StartStopBtn
+
     -- ── Botão fechar ──────────────────────────────────────────────────────────
     local Close                    = Instance.new("TextButton", Main)
     Close.Size                     = UDim2.new(0, 20, 0, 20)
