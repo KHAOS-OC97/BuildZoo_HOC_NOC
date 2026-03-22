@@ -53,12 +53,6 @@ local function removeAllTags()
             end
         end
     end
-    -- Limpa também tags órfãs no workspace
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v.Name == TAG_NAME then
-            pcall(function() v:Destroy() end)
-        end
-    end
 end
 
 function ESP.Init(ctx)
@@ -68,6 +62,7 @@ function ESP.Init(ctx)
     _G.__HOC_RUNTIME = _G.__HOC_RUNTIME or {}
     _G.__HOC_RUNTIME.ESP = _G.__HOC_RUNTIME.ESP or {
         RenderConn = nil,
+        LastEnabled = false,
     }
     _runtime = _G.__HOC_RUNTIME.ESP
 
@@ -81,6 +76,7 @@ function ESP.Init(ctx)
         if not _G_Running then return end
 
         if _G_ESP then
+            _runtime.LastEnabled = true
             for _, p in pairs(_svc.Players:GetPlayers()) do
                 if p ~= _svc.LocalPlayer and p.Character then
                     local head = p.Character:FindFirstChild("Head")
@@ -100,7 +96,11 @@ function ESP.Init(ctx)
                 end
             end
         else
-            removeAllTags()
+            -- Limpa apenas na transição ON -> OFF para evitar lag por limpeza a cada frame.
+            if _runtime.LastEnabled then
+                removeAllTags()
+                _runtime.LastEnabled = false
+            end
         end
     end)
 end
