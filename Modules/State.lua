@@ -19,6 +19,7 @@ _G_AntiAFK     = (_G_AntiAFK     == nil) and false or _G_AntiAFK
 _G_WalkSpeed   = (_G_WalkSpeed   == nil) and 16    or _G_WalkSpeed
 _G_AutoBuy     = (_G_AutoBuy     == nil) and false or _G_AutoBuy
 _G_BuyAmount   = (_G_BuyAmount   == nil) and 1     or _G_BuyAmount
+_G_BigPetsFeed = (_G_BigPetsFeed == nil) and false or _G_BigPetsFeed
 
 local State = {
     -- Cor RGB global — atualizada pelo loop de cor da GUI, consumida por todos os strokes
@@ -33,6 +34,7 @@ local State = {
         Main           = nil,
         SpeedBtn       = nil,
         FruitBtn       = nil,
+        BigPetsFeedBtn = nil,
         HopBtn         = nil,
         TPBtn          = nil,
         DropdownBtn    = nil,
@@ -56,6 +58,7 @@ function State.ClearStored()
         Main           = nil,
         SpeedBtn       = nil,
         FruitBtn       = nil,
+        BigPetsFeedBtn = nil,
         HopBtn         = nil,
         TPBtn          = nil,
         DropdownBtn    = nil,

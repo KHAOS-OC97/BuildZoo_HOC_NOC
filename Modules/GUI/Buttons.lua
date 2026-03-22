@@ -35,6 +35,7 @@ function Buttons.Build(Main, ctx)
     local state     = ctx.State
     local stored    = state.Stored
     local Movement  = ctx.Movement
+    local BigPetFeed = ctx.BigPetFeed
     local ServerHop = ctx.ServerHop
     local Teleport  = ctx.Teleport
 
@@ -88,8 +89,21 @@ function Buttons.Build(Main, ctx)
         Teleport.ToAlly()
     end)
 
+    -- ── FOOD BIG PETS ────────────────────────────────────────────────────────
+    local BigPetsFeedBtn = addBtn(_G_BigPetsFeed and "FOOD BIG PETS: ON" or "FOOD BIG PETS: OFF", BTN_START + BTN_STEP * 3)
+    stored.BigPetsFeedBtn = BigPetsFeedBtn
+    BigPetsFeedBtn.MouseButton1Click:Connect(function()
+        _G_BigPetsFeed = not _G_BigPetsFeed
+        BigPetsFeedBtn.Text = _G_BigPetsFeed and "FOOD BIG PETS: ON" or "FOOD BIG PETS: OFF"
+        if _G_BigPetsFeed and BigPetFeed and type(BigPetFeed.Pulse) == "function" then
+            task.spawn(function()
+                pcall(function() BigPetFeed.Pulse() end)
+            end)
+        end
+    end)
+
     -- ── Server Hop ────────────────────────────────────────────────────────────
-    local HopBtn = addBtn("SERVER HOP (EXTRAÇÃO)", BTN_START + BTN_STEP * 3)
+    local HopBtn = addBtn("SERVER HOP (EXTRAÇÃO)", BTN_START + BTN_STEP * 4)
     stored.HopBtn = HopBtn
     HopBtn.MouseButton1Click:Connect(function()
         ServerHop.Hop()

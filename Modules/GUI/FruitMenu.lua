@@ -12,8 +12,8 @@
 local FruitMenu = {}
 
 -- Botões de ação terminam em ~335px (207 + 32*4 = 335)
-local DROPDOWN_Y  = 335
-local AUTOBUY_Y   = 363
+local DROPDOWN_Y  = 367
+local AUTOBUY_Y   = 395
 
 function FruitMenu.Build(Main, ctx)
     local cfg    = ctx.Config

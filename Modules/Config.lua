@@ -23,6 +23,21 @@ return {
     AUTO_BUY_GUI_SCAN_INTERVAL = 8.0,
     AUTO_BUY_ALLOW_GUI_FALLBACK = false,
 
+    -- BigPetFeed (modo silencioso por remotes)
+    BIG_PET_FEED_LOOP_INTERVAL = 1.0,
+    BIG_PET_FEED_SWEEP = 8,
+    BIG_PET_FEED_PET_COOLDOWN = 6,
+    BIG_PET_FEED_REQUEST_SPACING = 0.08,
+    BIG_PET_FEED_REMOTE_SCAN_INTERVAL = 30,
+    BIG_PET_FEED_ALLOW_TOOL_ACTIVATE_FALLBACK = false,
+    BIG_PET_FEED_KEYWORDS = {
+        "pet", "big", "feed", "food", "eat", "hunger", "consume", "fruit", "use",
+    },
+    BIG_PET_IDS = {
+        "afe26d3344da424bb3f5efa6e56df287",
+        "0364afa6d90d412b9d5089a1b81d5860",
+    },
+
     -- Usuários aliados para teleporte
     TARGET_USERS = {"KChaos97", "CKhaos79"},
 
