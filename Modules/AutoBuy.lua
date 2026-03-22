@@ -47,37 +47,6 @@ local function matchesFruitShopKeyword(name)
     return false
 end
 
-local function ensureFruitShopOpen(playerGui)
-    if not playerGui then return end
-
-    for _, obj in ipairs(playerGui:GetDescendants()) do
-        local shouldOpen = matchesFruitShopKeyword(obj.Name)
-
-        if not shouldOpen and (obj:IsA("TextButton") or obj:IsA("TextLabel")) then
-            shouldOpen = matchesFruitShopKeyword(obj.Text)
-        end
-
-        if shouldOpen then
-            pcall(function()
-                if obj:IsA("ScreenGui") then
-                    obj.Enabled = true
-                elseif obj:IsA("GuiObject") then
-                    obj.Visible = true
-                    local parent = obj.Parent
-                    while parent do
-                        if parent:IsA("ScreenGui") then
-                            parent.Enabled = true
-                        elseif parent:IsA("GuiObject") then
-                            parent.Visible = true
-                        end
-                        parent = parent.Parent
-                    end
-                end
-            end)
-        end
-    end
-end
-
 local function collectFruitShopRoots(playerGui)
     local roots = {}
     local seen = {}
@@ -331,8 +300,6 @@ local function refreshShop(playerGui, selected)
     local now = os.clock()
     local scanInterval = _cfg.AUTO_BUY_GUI_SCAN_INTERVAL or 8.0
 
-    ensureFruitShopOpen(playerGui)
-
     if next(_cachedShop) ~= nil and (now - _lastFullScan) < scanInterval then
         local stillValid = true
         for fruitName, entry in pairs(_cachedShop) do
@@ -430,7 +397,7 @@ local function refreshRemoteCandidates()
     end
 
     local keywords = {
-        "fruit", "shop", "buy", "purchase", "merchant", "stock", "restock", "item",
+        "fruit", "food", "petfood", "shop", "buy", "purchase", "merchant", "stock", "restock", "item",
     }
 
     local candidates = {}
