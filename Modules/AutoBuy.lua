@@ -148,15 +148,15 @@ local function activateButton(button)
         if success then return true end
     end
 
+    if _cfg and _cfg.AUTO_BUY_STRICT_COIN_ONLY == true then
+        return false
+    end
+
     pcall(function()
         button:Activate()
         success = true
     end)
     if success then return true end
-
-    if _cfg and _cfg.AUTO_BUY_STRICT_COIN_ONLY == true then
-        return false
-    end
 
     if _svc.VirtualInputManager then
         local absPos = button.AbsolutePosition
