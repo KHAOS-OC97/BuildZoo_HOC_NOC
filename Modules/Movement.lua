@@ -9,18 +9,42 @@
 local Movement = {}
 local _svc
 
+-- Conecta o GetPropertyChangedSignal do Humanoid para re-aplicar o WalkSpeed
+-- sempre que o jogo tentar resetar (anti-cheat do servidor)
+local function hookHumanoid(hum)
+    if not hum then return end
+    pcall(function() hum.WalkSpeed = _G_WalkSpeed end)
+    hum:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+        if not _G_Running then return end
+        if hum.WalkSpeed ~= _G_WalkSpeed then
+            pcall(function() hum.WalkSpeed = _G_WalkSpeed end)
+        end
+    end)
+end
+
+local function hookCharacter(char)
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hookHumanoid(hum)
+    else
+        -- Aguarda o Humanoid aparecer (primeiros frames do spawn)
+        char.ChildAdded:Connect(function(child)
+            if child:IsA("Humanoid") then hookHumanoid(child) end
+        end)
+    end
+end
+
 function Movement.Init(ctx)
     _svc = ctx.Services
 
-    -- Mantém o WalkSpeed aplicado a cada frame de física
-    _svc.RunService.Stepped:Connect(function()
-        if not _G_Running then return end
-        local char = _svc.LocalPlayer.Character
-        if not char then return end
-        local hum = char:FindFirstChild("Humanoid")
-        if hum then
-            pcall(function() hum.WalkSpeed = _G_WalkSpeed end)
-        end
+    -- Aplica ao personagem atual
+    hookCharacter(_svc.LocalPlayer.Character)
+
+    -- Aplica em cada respawn
+    _svc.LocalPlayer.CharacterAdded:Connect(function(char)
+        task.wait()   -- aguarda 1 frame para o Humanoid existir
+        hookCharacter(char)
     end)
 
     -- Pulo infinito
