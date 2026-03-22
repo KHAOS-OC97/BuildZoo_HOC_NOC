@@ -32,10 +32,28 @@ local function collectPetTargets()
     if not petsFolder then return {} end
 
     local targets = {}
-    for _, id in ipairs(_cfg.BIG_PET_IDS or {}) do
-        local pet = petsFolder:FindFirstChild(id)
-        if pet then
+    local seen = {}
+
+    local function pushIfAny(pet)
+        if pet and not seen[pet] then
+            seen[pet] = true
             table.insert(targets, pet)
+        end
+    end
+
+    for _, id in ipairs(_cfg.BIG_PET_IDS or {}) do
+        pushIfAny(petsFolder:FindFirstChild(id))
+        pushIfAny(petsFolder:FindFirstChild(id, true))
+    end
+
+    if #targets == 0 then
+        for _, obj in ipairs(petsFolder:GetDescendants()) do
+            if obj:IsA("Model") then
+                local sig = normalize(obj.Name)
+                if sig:find("big", 1, true) and sig:find("pet", 1, true) then
+                    pushIfAny(obj)
+                end
+            end
         end
     end
 
@@ -418,11 +436,13 @@ local function tryPromptFallback(foods)
                 task.wait(_cfg.BIG_PET_FEED_REQUEST_SPACING or 0.08)
             end
 
-            local prompt = findPetPrompt(pet) or findPromptNearPet(pet)
-            if prompt then
-                fireproximityprompt(prompt)
-                ok = true
-                task.wait(_cfg.BIG_PET_FEED_REQUEST_SPACING or 0.08)
+            for _ = 1, (_cfg.BIG_PET_FEED_PROMPT_RETRY or 3) do
+                local prompt = findPetPrompt(pet) or findPromptNearPet(pet)
+                if prompt then
+                    fireproximityprompt(prompt)
+                    ok = true
+                    task.wait(_cfg.BIG_PET_FEED_REQUEST_SPACING or 0.08)
+                end
             end
         end
     end)

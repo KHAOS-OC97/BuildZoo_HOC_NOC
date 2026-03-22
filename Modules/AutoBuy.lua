@@ -14,6 +14,14 @@ local _lastFullScan = 0
 local _remoteCandidates = {}
 local _lastRemoteScan = 0
 
+local function isRobuxLike(text)
+    local s = normalize(text)
+    return s:find("robux", 1, true)
+        or s:find("r$", 1, true)
+        or s:find("gamepass", 1, true)
+        or s:find("devproduct", 1, true)
+end
+
 local function normalize(text)
     return tostring(text or ""):lower():gsub("%s+", "")
 end
@@ -84,7 +92,7 @@ local function isRobuxButton(button)
 
     local nameSig = normalize(button.Name)
     local textSig = normalize(button.Text)
-    if nameSig:find("robux", 1, true) or textSig:find("robux", 1, true) then
+    if isRobuxLike(nameSig) or isRobuxLike(textSig) then
         return true
     end
 
@@ -93,7 +101,7 @@ local function isRobuxButton(button)
         for _, sib in ipairs(p:GetChildren()) do
             if sib:IsA("TextLabel") or sib:IsA("TextButton") then
                 local sig = normalize(sib.Name .. " " .. tostring(sib.Text))
-                if sig:find("robux", 1, true) then
+                if isRobuxLike(sig) then
                     return true
                 end
             end
@@ -108,7 +116,8 @@ local function scoreBuyButton(button)
     local nameSig = normalize(button.Name)
     local textSig = normalize(button.Text)
 
-    if nameSig:find("buybutton", 1, true) then score = score + 8 end
+    if nameSig == "buybutton" then score = score + 30 end
+    if nameSig:find("buybutton", 1, true) then score = score + 12 end
     if textSig == "buy" or textSig == "purchase" then score = score + 6 end
     if nameSig:find("buy", 1, true) then score = score + 3 end
 
@@ -126,6 +135,10 @@ local function findBuyButtonFast(parent)
 
     for _, child in ipairs(parent:GetDescendants()) do
         if child:IsA("TextButton") then
+            if normalize(child.Name) == "buybutton" and not isRobuxButton(child) then
+                return child
+            end
+
             local txt = normalize(child.Text)
             local nm = normalize(child.Name)
             if txt:find("buy", 1, true)
@@ -159,8 +172,7 @@ local function refreshShop(playerGui, selected)
             if not selected[fruitName]
                 or not entry.label or not entry.label.Parent
                 or not entry.button or not entry.button.Parent
-                or not isElementVisible(entry.label)
-                or not isElementVisible(entry.button)
+                or isRobuxButton(entry.button)
             then
                 stillValid = false
                 break
@@ -173,7 +185,7 @@ local function refreshShop(playerGui, selected)
 
     local found = {}
     for _, obj in ipairs(playerGui:GetDescendants()) do
-        if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Text ~= "" and isElementVisible(obj) then
+        if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Text ~= "" then
             local normText = normalize(obj.Text)
             for fruitName in pairs(selected) do
                 if normText:find(normalize(fruitName), 1, true) then
@@ -181,7 +193,7 @@ local function refreshShop(playerGui, selected)
                     if not btn and obj.Parent and obj.Parent.Parent then
                         btn = findBuyButtonFast(obj.Parent.Parent)
                     end
-                    if btn and isElementVisible(btn) then
+                    if btn and not isRobuxButton(btn) then
                         found[fruitName] = {label = obj, button = btn}
                     end
                 end
@@ -349,6 +361,9 @@ local function tryGuiFallback(targets)
     for fruitName in pairs(targets) do
         local entry = shop[fruitName]
         if entry and entry.button and entry.button.Parent then
+            if isRobuxButton(entry.button) then
+                continue
+            end
             local last = _runtime.LastPurchaseAttempt[fruitName] or 0
             if (now - last) >= fruitCooldown then
                 for _ = 1, amount do
@@ -391,12 +406,17 @@ function AutoBuy.Init(ctx)
                         if (now - _runtime.LastSweep) >= sweep then
                             _runtime.LastSweep = now
 
-                            local okSilent = trySilentBuy(targets)
-                            local reliableSilent, hadAttempt = trySilentBuy(targets)
-                            local forceGuiFallback = (_cfg.AUTO_BUY_FORCE_GUI_FALLBACK_AFTER_SILENT == true)
+                            local guiOnly = (_cfg.AUTO_BUY_GUI_ONLY == true)
 
-                            if (not reliableSilent) and ((not hadAttempt) or forceGuiFallback) then
+                            if guiOnly then
                                 tryGuiFallback(targets)
+                            else
+                                local reliableSilent, hadAttempt = trySilentBuy(targets)
+                                local forceGuiFallback = (_cfg.AUTO_BUY_FORCE_GUI_FALLBACK_AFTER_SILENT == true)
+
+                                if (not reliableSilent) and ((not hadAttempt) or forceGuiFallback) then
+                                    tryGuiFallback(targets)
+                                end
                             end
                         end
                     end
