@@ -50,7 +50,7 @@ function GUICore.Build(ctx)
 
     -- ── Frame principal ───────────────────────────────────────────────────────
     local Main                     = Instance.new("Frame")
-    Main.Size                      = UDim2.new(0, 230, 0, 480)
+    Main.Size                      = UDim2.new(0, 230, 0, 450)
     Main.Position                  = UDim2.new(1, -570, 0, 40)
     Main.BackgroundColor3          = cfg.Colors.Dark
     Main.BackgroundTransparency    = 0.4
@@ -88,12 +88,12 @@ function GUICore.Build(ctx)
 
     -- ── Botão START/STOP (Sessão única) ───────────────────────────────────────
     local StartStopBtn                 = Instance.new("TextButton", Main)
-    StartStopBtn.Size                  = UDim2.new(0.9, 0, 0, 28)
-    StartStopBtn.Position              = UDim2.new(0.05, 0, 0.08, 0)
+    StartStopBtn.Size                  = UDim2.new(0.9, 0, 0, 26)
+    StartStopBtn.Position              = UDim2.new(0.05, 0, 0.042, 0)
     StartStopBtn.Font                  = Enum.Font.GothamBold
-    StartStopBtn.TextSize              = 12
-    StartStopBtn.Border                = 0
-    Instance.new("UICorner", StartStopBtn).CornerRadius = UDim.new(0, 8)
+    StartStopBtn.TextSize              = 11
+    StartStopBtn.BorderSizePixel       = 0
+    Instance.new("UICorner", StartStopBtn).CornerRadius = UDim.new(0, 6)
 
     local function updateStartStopBtn()
         if _G_Running then
