@@ -1,28 +1,36 @@
 --[[
-    AutoBuy.lua — Loop de compra automática de frutas (leve e sem travamento).
+    AutoBuy.lua — Compra automática com prioridade para compra silenciosa.
 
-    Usa cache agressivo e evita varrer a GUI frequentemente.
-    O objetivo é manter a compra fluida sem impacto visível no jogo.
+    Modo principal: dispara RemoteEvent/RemoteFunction sem depender da GUI.
+    Fallback opcional: clique em botão da loja (desligado por padrão).
 ]]
 
 local AutoBuy = {}
-local _svc, _state
+local _svc, _state, _cfg
+local _runtime
+
 local _cachedShop = {}
 local _lastFullScan = 0
-local _lastPurchaseAttempt = {}
-local _shopStateHash = nil
-
-local SCAN_INTERVAL = 8.0
-local PURCHASE_INTERVAL = 2.5
-local PLAYER_GUI_CACHE_TIME = 0.5
+local _remoteCandidates = {}
+local _lastRemoteScan = 0
 
 local function normalize(text)
     return tostring(text or ""):lower():gsub("%s+", "")
 end
 
+local function collectTargets()
+    local t = {}
+    for name, active in pairs(_state.SelectedFruits) do
+        if active then
+            t[name] = true
+        end
+    end
+    return t
+end
+
 local function isElementVisible(element)
     if not element or not element.Parent then return false end
-    
+
     local current = element
     while current do
         if current:IsA("GuiObject") and not current.Visible then
@@ -34,38 +42,6 @@ local function isElementVisible(element)
         current = current.Parent
     end
     return true
-end
-
-local function computeShopStateHash(playerGui)
-    if not playerGui then return 0 end
-    
-    local hash = 0
-    local count = 0
-    
-    for _, obj in ipairs(playerGui:GetDescendants()) do
-        if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Text ~= "" then
-            hash = hash + #obj.Text
-            count = count + 1
-        end
-    end
-    
-    return hash * 1000 + count
-end
-
-local function hasShopReset(playerGui)
-    local currentHash = computeShopStateHash(playerGui)
-    
-    if _shopStateHash == nil then
-        _shopStateHash = currentHash
-        return false
-    end
-    
-    if currentHash ~= _shopStateHash then
-        _shopStateHash = currentHash
-        return true
-    end
-    
-    return false
 end
 
 local function activateButton(button)
@@ -110,7 +86,11 @@ local function findBuyButtonFast(parent)
         if child:IsA("TextButton") then
             local txt = normalize(child.Text)
             local nm = normalize(child.Name)
-            if txt:find("buy", 1, true) or nm:find("buy", 1, true) then
+            if txt:find("buy", 1, true)
+                or txt:find("purchase", 1, true)
+                or nm:find("buy", 1, true)
+                or nm:find("purchase", 1, true)
+            then
                 return child
             end
         end
@@ -119,125 +99,217 @@ local function findBuyButtonFast(parent)
     return nil
 end
 
-local function performFullScan(playerGui, targets)
-    local found = {}
+local function refreshShop(playerGui, selected)
+    local now = os.clock()
+    local scanInterval = _cfg.AUTO_BUY_GUI_SCAN_INTERVAL or 8.0
 
-    if not playerGui then return found end
-
-    local textElements = {}
-    for _, obj in ipairs(playerGui:GetDescendants()) do
-        if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Text ~= "" then
-            table.insert(textElements, obj)
+    if next(_cachedShop) ~= nil and (now - _lastFullScan) < scanInterval then
+        local stillValid = true
+        for fruitName, entry in pairs(_cachedShop) do
+            if not selected[fruitName]
+                or not entry.label or not entry.label.Parent
+                or not entry.button or not entry.button.Parent
+                or not isElementVisible(entry.label)
+                or not isElementVisible(entry.button)
+            then
+                stillValid = false
+                break
+            end
+        end
+        if stillValid then
+            return _cachedShop
         end
     end
 
-    for _, element in ipairs(textElements) do
-        if not isElementVisible(element) then continue end
-
-        local normText = normalize(element.Text)
-        local bestMatch
-        local bestLen = 0
-
-        for fruitName, needle in pairs(targets) do
-            if normText:find(needle, 1, true) and #needle > bestLen then
-                bestMatch = fruitName
-                bestLen = #needle
-            end
-        end
-
-        if bestMatch then
-            local buyBtn = findBuyButtonFast(element.Parent)
-            if buyBtn and isElementVisible(buyBtn) then
-                found[bestMatch] = {
-                    label = element,
-                    button = buyBtn,
-                }
+    local found = {}
+    for _, obj in ipairs(playerGui:GetDescendants()) do
+        if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Text ~= "" and isElementVisible(obj) then
+            local normText = normalize(obj.Text)
+            for fruitName in pairs(selected) do
+                if normText:find(normalize(fruitName), 1, true) then
+                    local btn = findBuyButtonFast(obj.Parent)
+                    if btn and isElementVisible(btn) then
+                        found[fruitName] = {label = obj, button = btn}
+                    end
+                end
             end
         end
     end
 
     _cachedShop = found
-    _lastFullScan = os.clock()
+    _lastFullScan = now
     return found
 end
 
-local function refreshShop(playerGui, targets)
+local function refreshRemoteCandidates()
     local now = os.clock()
-
-    if hasShopReset(playerGui) then
-        _cachedShop = {}
-        _lastFullScan = 0
+    local scanInterval = _cfg.AUTO_BUY_REMOTE_SCAN_INTERVAL or 30
+    if (now - _lastRemoteScan) < scanInterval and next(_remoteCandidates) ~= nil then
+        return _remoteCandidates
     end
 
-    if next(_cachedShop) == nil then
-        return performFullScan(playerGui, targets)
-    end
+    local keywords = {
+        "fruit", "shop", "buy", "purchase", "merchant", "stock", "restock", "item",
+    }
 
-    if now - _lastFullScan >= SCAN_INTERVAL then
-        return performFullScan(playerGui, targets)
-    end
+    local candidates = {}
+    local containers = {
+        game:GetService("ReplicatedStorage"),
+    }
 
-    local stillValid = true
-    for fruitName, entry in pairs(_cachedShop) do
-        if not targets[fruitName]
-        or not entry.label or not entry.label.Parent
-        or not entry.button or not entry.button.Parent
-        or not isElementVisible(entry.label)
-        or not isElementVisible(entry.button) then
-            stillValid = false
-            break
+    for _, root in ipairs(containers) do
+        for _, obj in ipairs(root:GetDescendants()) do
+            if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+                local sig = normalize(obj:GetFullName() .. " " .. obj.Name)
+                for _, kw in ipairs(keywords) do
+                    if sig:find(kw, 1, true) then
+                        table.insert(candidates, obj)
+                        break
+                    end
+                end
+            end
         end
     end
 
-    if not stillValid then
-        return performFullScan(playerGui, targets)
+    _remoteCandidates = candidates
+    _lastRemoteScan = now
+    return _remoteCandidates
+end
+
+local function invokeRemote(remote, args)
+    local ok = false
+    pcall(function()
+        if remote:IsA("RemoteEvent") then
+            remote:FireServer(unpack(args))
+            ok = true
+        elseif remote:IsA("RemoteFunction") then
+            remote:InvokeServer(unpack(args))
+            ok = true
+        end
+    end)
+    return ok
+end
+
+local function buildArgVariants(fruitName, amount)
+    return {
+        {fruitName},
+        {fruitName, amount},
+        {"Buy", fruitName},
+        {"Buy", fruitName, amount},
+        {"Purchase", fruitName},
+        {"Purchase", fruitName, amount},
+        {"Fruit", fruitName},
+        {"Fruit", fruitName, amount},
+    }
+end
+
+local function trySilentBuy(targets)
+    local remotes = refreshRemoteCandidates()
+    if #remotes == 0 then return false end
+
+    local now = os.clock()
+    local anyAttempt = false
+    local fruitCooldown = _cfg.AUTO_BUY_FRUIT_COOLDOWN or 20
+    local amount = math.max(1, tonumber(_G_BuyAmount) or 1)
+
+    for fruitName in pairs(targets) do
+        local last = _runtime.LastPurchaseAttempt[fruitName] or 0
+        if (now - last) >= fruitCooldown then
+            local variants = buildArgVariants(fruitName, amount)
+            local sent = false
+
+            for _, remote in ipairs(remotes) do
+                for _, args in ipairs(variants) do
+                    if invokeRemote(remote, args) then
+                        sent = true
+                        anyAttempt = true
+                        break
+                    end
+                end
+                if sent then break end
+            end
+
+            if sent then
+                _runtime.LastPurchaseAttempt[fruitName] = now
+                task.wait(_cfg.AUTO_BUY_REQUEST_SPACING or 0.08)
+            end
+        end
     end
 
-    return _cachedShop
+    return anyAttempt
+end
+
+local function tryGuiFallback(targets)
+    if not (_cfg.AUTO_BUY_ALLOW_GUI_FALLBACK == true) then
+        return false
+    end
+
+    local pg = _svc.LocalPlayer and _svc.LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return false end
+
+    local shop = refreshShop(pg, targets)
+    local any = false
+    local now = os.clock()
+    local fruitCooldown = _cfg.AUTO_BUY_FRUIT_COOLDOWN or 20
+    local amount = math.max(1, tonumber(_G_BuyAmount) or 1)
+
+    for fruitName in pairs(targets) do
+        local entry = shop[fruitName]
+        if entry and entry.button and entry.button.Parent then
+            local last = _runtime.LastPurchaseAttempt[fruitName] or 0
+            if (now - last) >= fruitCooldown then
+                for _ = 1, amount do
+                    if not activateButton(entry.button) then break end
+                    task.wait(_cfg.AUTO_BUY_REQUEST_SPACING or 0.08)
+                end
+                _runtime.LastPurchaseAttempt[fruitName] = now
+                any = true
+            end
+        end
+    end
+
+    return any
 end
 
 function AutoBuy.Init(ctx)
     _svc = ctx.Services
     _state = ctx.State
+    _cfg = ctx.Config
+
+    _G.__HOC_RUNTIME = _G.__HOC_RUNTIME or {}
+    _G.__HOC_RUNTIME.AutoBuy = _G.__HOC_RUNTIME.AutoBuy or {
+        LoopStarted = false,
+        LastSweep = 0,
+        LastPurchaseAttempt = {},
+    }
+    _runtime = _G.__HOC_RUNTIME.AutoBuy
+
+    if _runtime.LoopStarted then return end
+    _runtime.LoopStarted = true
 
     task.spawn(function()
         while _G_Running do
             if _G_AutoBuy then
-                local playerGui = _svc.LocalPlayer:FindFirstChild("PlayerGui")
-                
-                if playerGui then
-                    pcall(function()
-                        local targets = {}
-                        for name, active in pairs(_state.SelectedFruits) do
-                            if active then
-                                targets[name] = normalize(name)
+                pcall(function()
+                    local targets = collectTargets()
+                    if next(targets) ~= nil then
+                        local now = os.clock()
+                        local sweep = _cfg.AUTO_BUY_SILENT_SWEEP or 15
+                        if (now - _runtime.LastSweep) >= sweep then
+                            _runtime.LastSweep = now
+
+                            local okSilent = trySilentBuy(targets)
+                            if not okSilent then
+                                tryGuiFallback(targets)
                             end
                         end
-
-                        if next(targets) ~= nil then
-                            local shop = refreshShop(playerGui, targets)
-                            local now = os.clock()
-
-                            for fruitName in pairs(targets) do
-                                local entry = shop[fruitName]
-                                if entry and entry.button and entry.button.Parent then
-                                    local lastAttempt = _lastPurchaseAttempt[fruitName] or 0
-                                    if now - lastAttempt >= PURCHASE_INTERVAL then
-                                        for _ = 1, _G_BuyAmount do
-                                            if not activateButton(entry.button) then break end
-                                            task.wait(0.08)
-                                        end
-                                        _lastPurchaseAttempt[fruitName] = now
-                                    end
-                                end
-                            end
-                        end
-                    end)
-                end
+                    end
+                end)
             end
 
-            task.wait(1.5)
+            task.wait(_cfg.AUTO_BUY_LOOP_INTERVAL or 1.0)
         end
+        _runtime.LoopStarted = false
     end)
 end
 

@@ -14,6 +14,15 @@ return {
     -- Intervalo (segundos) entre pings periódicos de Anti-AFK
     ANTI_AFK_INTERVAL = 60,
 
+    -- AutoBuy (modo silencioso por remotes)
+    AUTO_BUY_LOOP_INTERVAL = 1.0,
+    AUTO_BUY_SILENT_SWEEP = 15,
+    AUTO_BUY_FRUIT_COOLDOWN = 20,
+    AUTO_BUY_REQUEST_SPACING = 0.08,
+    AUTO_BUY_REMOTE_SCAN_INTERVAL = 30,
+    AUTO_BUY_GUI_SCAN_INTERVAL = 8.0,
+    AUTO_BUY_ALLOW_GUI_FALLBACK = false,
+
     -- Usuários aliados para teleporte
     TARGET_USERS = {"KChaos97", "CKhaos79"},
 
