@@ -218,6 +218,61 @@ local function isOutOfStockText(text)
     return sig:find("nostock", 1, true) or sig:find("soldout", 1, true)
 end
 
+local function isRobuxModalText(text)
+    local sig = normalize(text)
+    return sig:find("buyrobuxanditem", 1, true)
+        or sig:find("yourpaymentmethodwillbecharged", 1, true)
+        or sig:find("termsofuse", 1, true)
+end
+
+local function dismissRobuxModal()
+    local pg = _svc.LocalPlayer and _svc.LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return false end
+
+    local modalRoot = nil
+
+    for _, obj in ipairs(pg:GetDescendants()) do
+        if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Text and obj.Text ~= "" and isElementVisible(obj) then
+            if isRobuxModalText(obj.Text) then
+                local current = obj
+                while current and current ~= pg do
+                    if current:IsA("Frame") or current:IsA("ScreenGui") then
+                        modalRoot = current
+                        break
+                    end
+                    current = current.Parent
+                end
+                if modalRoot then break end
+            end
+        end
+    end
+
+    if not modalRoot then return false end
+
+    for _, obj in ipairs(modalRoot:GetDescendants()) do
+        if (obj:IsA("TextButton") or obj:IsA("ImageButton")) and isElementVisible(obj) then
+            local nameSig = normalize(obj.Name)
+            local textSig = normalize(obj.Text)
+            if nameSig:find("close", 1, true)
+                or textSig == "x"
+                or textSig == "close"
+                or nameSig == "x"
+            then
+                pcall(function()
+                    if obj:IsA("TextButton") and typeof(firesignal) == "function" then
+                        firesignal(obj.MouseButton1Click)
+                    else
+                        obj:Activate()
+                    end
+                end)
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
 local function cardLooksOutOfStock(root)
     if not root then return false end
 
@@ -438,6 +493,27 @@ local function refreshShop(playerGui, selected)
     return found
 end
 
+local function collectSilentEligibleTargets(targets)
+    local pg = _svc.LocalPlayer and _svc.LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then
+        return targets
+    end
+
+    local shop = refreshShop(pg, targets)
+    if next(shop) == nil then
+        return targets
+    end
+
+    local eligible = {}
+    for fruitName, entry in pairs(shop) do
+        if targets[fruitName] and entry and entry.button and buttonIsSafeCoinTarget(entry.button) then
+            eligible[fruitName] = true
+        end
+    end
+
+    return eligible
+end
+
 local function refreshRemoteCandidates()
     local now = os.clock()
     local scanInterval = _cfg.AUTO_BUY_REMOTE_SCAN_INTERVAL or 30
@@ -535,6 +611,9 @@ local function buildArgVariants(fruitName, amount)
 end
 
 local function trySilentBuy(targets)
+    targets = collectSilentEligibleTargets(targets)
+    if next(targets) == nil then return false, false end
+
     local remotes = refreshRemoteCandidates()
     if #remotes == 0 then return false, false end
 
@@ -553,6 +632,7 @@ local function trySilentBuy(targets)
             for _, remote in ipairs(remotes) do
                 for _, args in ipairs(variants) do
                     local ok, kind, result = invokeRemote(remote, args)
+                    dismissRobuxModal()
                     if ok then
                         anyAttempt = true
 
@@ -642,6 +722,7 @@ function AutoBuy.Init(ctx)
         while _G_Running do
             if _G_AutoBuy then
                 pcall(function()
+                    dismissRobuxModal()
                     local targets = collectTargets()
                     if next(targets) ~= nil then
                         local now = os.clock()
