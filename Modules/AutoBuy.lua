@@ -13,6 +13,11 @@ local _cachedShop = {}
 local _lastFullScan = 0
 local _remoteCandidates = {}
 local _lastRemoteScan = 0
+local isRobuxButton
+
+local function normalize(text)
+    return tostring(text or ""):lower():gsub("%s+", "")
+end
 
 local function isRobuxLike(text)
     local s = normalize(text)
@@ -20,10 +25,6 @@ local function isRobuxLike(text)
         or s:find("r$", 1, true)
         or s:find("gamepass", 1, true)
         or s:find("devproduct", 1, true)
-end
-
-local function normalize(text)
-    return tostring(text or ""):lower():gsub("%s+", "")
 end
 
 local function collectTargets()
@@ -56,7 +57,18 @@ local function activateButton(button)
     if not button then return false end
 
     -- Modo estrito: nunca interage com botao que nao seja BuyButton (coin).
-    if (_cfg and _cfg.AUTO_BUY_STRICT_COIN_ONLY == true) and normalize(button.Name) ~= "buybutton" then
+    if (_cfg and _cfg.AUTO_BUY_STRICT_COIN_ONLY == true) then
+        local nameSig = normalize(button.Name)
+        local textSig = normalize(button.Text)
+        local isCoin = (nameSig == "buybutton")
+            or textSig == "buy"
+            or textSig == "purchase"
+        if (not isCoin) or isRobuxLike(nameSig) or isRobuxLike(textSig) then
+            return false
+        end
+    end
+
+    if isRobuxButton(button) then
         return false
     end
 
@@ -92,25 +104,13 @@ local function activateButton(button)
     return success
 end
 
-local function isRobuxButton(button)
+function isRobuxButton(button)
     if not button then return false end
 
     local nameSig = normalize(button.Name)
     local textSig = normalize(button.Text)
     if isRobuxLike(nameSig) or isRobuxLike(textSig) then
         return true
-    end
-
-    local p = button.Parent
-    if p then
-        for _, sib in ipairs(p:GetChildren()) do
-            if sib:IsA("TextLabel") or sib:IsA("TextButton") then
-                local sig = normalize(sib.Name .. " " .. tostring(sib.Text))
-                if isRobuxLike(sig) then
-                    return true
-                end
-            end
-        end
     end
 
     return false
@@ -143,16 +143,24 @@ local function findBuyButtonFast(parent)
     for _, child in ipairs(parent:GetDescendants()) do
         if child:IsA("TextButton") then
             local childName = normalize(child.Name)
+            local childText = normalize(child.Text)
 
             if childName == "buybutton" and not isRobuxButton(child) then
                 return child
             end
 
             if strictCoinOnly then
+                if (childText == "buy" or childText == "purchase") and not isRobuxButton(child) then
+                    local s = scoreBuyButton(child)
+                    if s > bestScore then
+                        bestScore = s
+                        best = child
+                    end
+                end
                 continue
             end
 
-            local txt = normalize(child.Text)
+            local txt = childText
             local nm = childName
             if txt:find("buy", 1, true)
                 or txt:find("purchase", 1, true)
@@ -378,7 +386,14 @@ local function tryGuiFallback(targets)
             if isRobuxButton(entry.button) then
                 continue
             end
-            if strictCoinOnly and normalize(entry.button.Name) ~= "buybutton" then
+            if strictCoinOnly then
+                local nm = normalize(entry.button.Name)
+                local tx = normalize(entry.button.Text)
+                if nm ~= "buybutton" and tx ~= "buy" and tx ~= "purchase" then
+                    continue
+                end
+            end
+            if strictCoinOnly and isRobuxButton(entry.button) then
                 continue
             end
             local last = _runtime.LastPurchaseAttempt[fruitName] or 0
