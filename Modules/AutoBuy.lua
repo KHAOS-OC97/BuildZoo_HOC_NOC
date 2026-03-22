@@ -148,25 +148,6 @@ local function activateButton(button)
         if success then return true end
     end
 
-    if _svc.VirtualInputManager then
-        local absPos = button.AbsolutePosition
-        local absSize = button.AbsoluteSize
-        local px = math.floor(absPos.X + absSize.X / 2)
-        local py = math.floor(absPos.Y + absSize.Y / 2)
-
-        pcall(function()
-            _svc.VirtualInputManager:SendMouseButtonEvent(px, py, 0, true, game, 0)
-            _svc.VirtualInputManager:SendMouseButtonEvent(px, py, 0, false, game, 0)
-            success = true
-        end)
-
-        if success then return true end
-    end
-
-    if _cfg and _cfg.AUTO_BUY_STRICT_COIN_ONLY == true then
-        return false
-    end
-
     pcall(function()
         button:Activate()
         success = true
@@ -674,13 +655,9 @@ function AutoBuy.Init(ctx)
                                 _runtime.LastSweep = now
 
                                 local reliableSilent, hadAttempt = trySilentBuy(targets)
-                                local forceGuiFallback = (_cfg.AUTO_BUY_FORCE_GUI_FALLBACK_AFTER_SILENT == true)
-
-                                if (not reliableSilent) and ((not hadAttempt) or forceGuiFallback) then
+                                if (not reliableSilent) and (not hadAttempt) then
                                     tryGuiFallback(targets)
                                 end
-                            else
-                                tryGuiFallback(targets)
                             end
                         end
                     end

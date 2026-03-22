@@ -24,7 +24,7 @@ return {
     AUTO_BUY_GUI_ONLY = false,
     AUTO_BUY_ALLOW_GUI_FALLBACK = true,
     AUTO_BUY_STRICT_COIN_ONLY = true,
-    AUTO_BUY_FORCE_GUI_FALLBACK_AFTER_SILENT = true,
+    AUTO_BUY_FORCE_GUI_FALLBACK_AFTER_SILENT = false,
 
     -- BigPetFeed (modo silencioso por remotes)
     BIG_PET_FEED_LOOP_INTERVAL = 1.0,
