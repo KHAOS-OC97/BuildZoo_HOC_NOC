@@ -33,6 +33,8 @@ return {
     BIG_PET_FEED_ALLOW_TOOL_ACTIVATE_FALLBACK = true,
     BIG_PET_FEED_ALLOW_PROMPT_FALLBACK = true,
     BIG_PET_FEED_FORCE_FALLBACK_AFTER_SILENT = true,
+    BIG_PET_FEED_INTERACT_DISTANCE = 4,
+    BIG_PET_FEED_PROMPT_RADIUS = 20,
     BIG_PET_FEED_KEYWORDS = {
         "pet", "big", "feed", "food", "eat", "hunger", "consume", "fruit", "use",
     },

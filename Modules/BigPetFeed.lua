@@ -42,6 +42,32 @@ local function collectPetTargets()
     return targets
 end
 
+local function getPetPivotCFrame(pet)
+    if not pet then return nil end
+
+    if pet:IsA("Model") then
+        local ok, cf = pcall(function() return pet:GetPivot() end)
+        if ok and cf then
+            return cf
+        end
+
+        local pp = pet.PrimaryPart
+        if pp then
+            return pp.CFrame
+        end
+
+        for _, obj in ipairs(pet:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                return obj.CFrame
+            end
+        end
+    elseif pet:IsA("BasePart") then
+        return pet.CFrame
+    end
+
+    return nil
+end
+
 local function toolMatchesSelection(toolName, selected)
     if next(selected) == nil then
         return true
@@ -289,13 +315,77 @@ end
 local function findPetPrompt(pet)
     if not pet then return nil end
 
+    local best = nil
+    local bestScore = -999
+
     for _, obj in ipairs(pet:GetDescendants()) do
         if obj:IsA("ProximityPrompt") then
-            return obj
+            local sig = normalize(obj.Name .. " " .. tostring(obj.ActionText) .. " " .. tostring(obj.ObjectText))
+            local score = 0
+            if sig:find("feed", 1, true) then score = score + 8 end
+            if sig:find("food", 1, true) then score = score + 6 end
+            if sig:find("pet", 1, true) then score = score + 3 end
+            if sig:find("eat", 1, true) then score = score + 3 end
+            if score > bestScore then
+                best = obj
+                bestScore = score
+            end
         end
     end
 
-    return nil
+    return best
+end
+
+local function findPromptNearPet(pet)
+    local petCf = getPetPivotCFrame(pet)
+    if not petCf then return nil end
+
+    local best = nil
+    local bestDist = math.huge
+
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") then
+            local parent = obj.Parent
+            local part = parent and parent:IsA("BasePart") and parent or nil
+            if part then
+                local d = (part.Position - petCf.Position).Magnitude
+                if d < bestDist and d <= (_cfg.BIG_PET_FEED_PROMPT_RADIUS or 20) then
+                    local sig = normalize(obj.Name .. " " .. tostring(obj.ActionText) .. " " .. tostring(obj.ObjectText))
+                    if sig:find("feed", 1, true)
+                        or sig:find("food", 1, true)
+                        or sig:find("pet", 1, true)
+                        or sig:find("eat", 1, true)
+                    then
+                        best = obj
+                        bestDist = d
+                    end
+                end
+            end
+        end
+    end
+
+    return best
+end
+
+local function moveNearPet(pet)
+    local lp = _svc.LocalPlayer
+    local char = lp and lp.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local petCf = getPetPivotCFrame(pet)
+    if not hrp or not petCf then return false end
+
+    local offset = CFrame.new(0, 0, -(_cfg.BIG_PET_FEED_INTERACT_DISTANCE or 4))
+    local target = petCf * offset
+
+    local ok = pcall(function()
+        hrp.CFrame = target
+    end)
+
+    if ok then
+        task.wait(_cfg.BIG_PET_FEED_REQUEST_SPACING or 0.08)
+    end
+
+    return ok
 end
 
 local function tryPromptFallback(foods)
@@ -317,16 +407,18 @@ local function tryPromptFallback(foods)
     local pets = collectPetTargets()
     if #pets == 0 then return false end
 
-    local food = foods and foods[1]
-    if not food then return false end
-
     local ok = false
     pcall(function()
-        humanoid:EquipTool(food)
-        task.wait(_cfg.BIG_PET_FEED_REQUEST_SPACING or 0.08)
-
         for _, pet in ipairs(pets) do
-            local prompt = findPetPrompt(pet)
+            moveNearPet(pet)
+
+            local food = foods and foods[1]
+            if food then
+                humanoid:EquipTool(food)
+                task.wait(_cfg.BIG_PET_FEED_REQUEST_SPACING or 0.08)
+            end
+
+            local prompt = findPetPrompt(pet) or findPromptNearPet(pet)
             if prompt then
                 fireproximityprompt(prompt)
                 ok = true

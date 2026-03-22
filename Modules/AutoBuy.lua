@@ -79,8 +79,50 @@ local function activateButton(button)
     return success
 end
 
+local function isRobuxButton(button)
+    if not button then return false end
+
+    local nameSig = normalize(button.Name)
+    local textSig = normalize(button.Text)
+    if nameSig:find("robux", 1, true) or textSig:find("robux", 1, true) then
+        return true
+    end
+
+    local p = button.Parent
+    if p then
+        for _, sib in ipairs(p:GetChildren()) do
+            if sib:IsA("TextLabel") or sib:IsA("TextButton") then
+                local sig = normalize(sib.Name .. " " .. tostring(sib.Text))
+                if sig:find("robux", 1, true) then
+                    return true
+                end
+            end
+        end
+    end
+
+    return false
+end
+
+local function scoreBuyButton(button)
+    local score = 0
+    local nameSig = normalize(button.Name)
+    local textSig = normalize(button.Text)
+
+    if nameSig:find("buybutton", 1, true) then score = score + 8 end
+    if textSig == "buy" or textSig == "purchase" then score = score + 6 end
+    if nameSig:find("buy", 1, true) then score = score + 3 end
+
+    if isRobuxButton(button) then
+        score = score - 100
+    end
+
+    return score
+end
+
 local function findBuyButtonFast(parent)
     if not parent then return nil end
+
+    local best, bestScore = nil, -9999
 
     for _, child in ipairs(parent:GetDescendants()) do
         if child:IsA("TextButton") then
@@ -91,9 +133,17 @@ local function findBuyButtonFast(parent)
                 or nm:find("buy", 1, true)
                 or nm:find("purchase", 1, true)
             then
-                return child
+                local s = scoreBuyButton(child)
+                if s > bestScore then
+                    bestScore = s
+                    best = child
+                end
             end
         end
+    end
+
+    if best and bestScore > 0 then
+        return best
     end
 
     return nil
