@@ -588,8 +588,6 @@ local function trySilentBuy(targets)
             if sent then
                 _runtime.LastPurchaseAttempt[fruitName] = now
                 task.wait(_cfg.AUTO_BUY_REQUEST_SPACING or 0.08)
-            elseif anyAttempt then
-                _runtime.LastPurchaseAttempt[fruitName] = now
             end
         end
     end
@@ -667,20 +665,22 @@ function AutoBuy.Init(ctx)
                     if next(targets) ~= nil then
                         local now = os.clock()
                         local sweep = _cfg.AUTO_BUY_SILENT_SWEEP or 15
-                        if (now - _runtime.LastSweep) >= sweep then
-                            _runtime.LastSweep = now
+                        local guiOnly = (_cfg.AUTO_BUY_GUI_ONLY == true)
 
-                            local guiOnly = (_cfg.AUTO_BUY_GUI_ONLY == true)
+                        if guiOnly then
+                            tryGuiFallback(targets)
+                        else
+                            if (now - _runtime.LastSweep) >= sweep then
+                                _runtime.LastSweep = now
 
-                            if guiOnly then
-                                tryGuiFallback(targets)
-                            else
                                 local reliableSilent, hadAttempt = trySilentBuy(targets)
                                 local forceGuiFallback = (_cfg.AUTO_BUY_FORCE_GUI_FALLBACK_AFTER_SILENT == true)
 
                                 if (not reliableSilent) and ((not hadAttempt) or forceGuiFallback) then
                                     tryGuiFallback(targets)
                                 end
+                            else
+                                tryGuiFallback(targets)
                             end
                         end
                     end
