@@ -263,10 +263,29 @@ local function collectCandidateContainers(button)
     end
 
     add(button and button.Parent)
-    add(button and button.Parent and button.Parent.Parent)
-    add(button and button.Parent and button.Parent.Parent and button.Parent.Parent.Parent)
 
     return containers
+end
+
+local function buttonHasLocalNoStock(button)
+    if not button or not button.Parent then return false end
+
+    local card = button.Parent
+    for _, obj in ipairs(card:GetDescendants()) do
+        if obj ~= button then
+            if normalize(obj.Name) == "nostockbutton" then
+                return true
+            end
+
+            if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Text and obj.Text ~= "" then
+                if isOutOfStockText(obj.Text) then
+                    return true
+                end
+            end
+        end
+    end
+
+    return false
 end
 
 local function buttonIsSafeCoinTarget(button)
@@ -282,8 +301,12 @@ local function buttonIsSafeCoinTarget(button)
         end
     end
 
+    if buttonHasLocalNoStock(button) then
+        return false
+    end
+
     for _, container in ipairs(collectCandidateContainers(button)) do
-        if cardLooksOutOfStock(container) then
+        if container and cardLooksOutOfStock(container) then
             return false
         end
     end
