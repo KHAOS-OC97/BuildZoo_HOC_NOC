@@ -121,18 +121,22 @@ end
 
 local function invokeRemote(remote, args)
     local ok = false
+    local result = nil
+    local kind = "unknown"
 
     pcall(function()
         if remote:IsA("RemoteEvent") then
             remote:FireServer(unpack(args))
             ok = true
+            kind = "event"
         elseif remote:IsA("RemoteFunction") then
-            remote:InvokeServer(unpack(args))
+            result = remote:InvokeServer(unpack(args))
             ok = true
+            kind = "function"
         end
     end)
 
-    return ok
+    return ok, kind, result
 end
 
 local function buildArgVariants(pet, tool)
@@ -179,6 +183,7 @@ local function trySilentFeed()
     local cooldown = _cfg.BIG_PET_FEED_PET_COOLDOWN or 6
     local spacing = _cfg.BIG_PET_FEED_REQUEST_SPACING or 0.08
     local anyAttempt = false
+    local anyReliableSuccess = false
 
     for _, pet in ipairs(pets) do
         local key = tostring(pet:GetFullName())
@@ -192,10 +197,16 @@ local function trySilentFeed()
 
                 for _, remote in ipairs(remotes) do
                     for _, args in ipairs(variants) do
-                        if invokeRemote(remote, args) then
-                            sent = true
+                        local ok, kind, result = invokeRemote(remote, args)
+                        if ok then
                             anyAttempt = true
-                            break
+
+                            -- RemoteFunction permite inferir sucesso de forma mais confiavel.
+                            if kind == "function" and result ~= false and result ~= nil then
+                                anyReliableSuccess = true
+                                sent = true
+                                break
+                            end
                         end
                     end
                     if sent then break end
@@ -207,11 +218,65 @@ local function trySilentFeed()
             if sent then
                 _runtime.LastFeedAttempt[key] = now
                 task.wait(spacing)
+            elseif anyAttempt then
+                _runtime.LastFeedAttempt[key] = now
             end
         end
     end
 
-    return anyAttempt
+    return anyReliableSuccess, anyAttempt
+end
+
+local function findPetPrompt(pet)
+    if not pet then return nil end
+
+    for _, obj in ipairs(pet:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") then
+            return obj
+        end
+    end
+
+    return nil
+end
+
+local function tryPromptFallback(foods)
+    if _cfg.BIG_PET_FEED_ALLOW_PROMPT_FALLBACK ~= true then
+        return false
+    end
+
+    if type(fireproximityprompt) ~= "function" then
+        return false
+    end
+
+    local lp = _svc.LocalPlayer
+    local char = lp and lp.Character
+    if not lp or not char then return false end
+
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return false end
+
+    local pets = collectPetTargets()
+    if #pets == 0 then return false end
+
+    local food = foods and foods[1]
+    if not food then return false end
+
+    local ok = false
+    pcall(function()
+        humanoid:EquipTool(food)
+        task.wait(_cfg.BIG_PET_FEED_REQUEST_SPACING or 0.08)
+
+        for _, pet in ipairs(pets) do
+            local prompt = findPetPrompt(pet)
+            if prompt then
+                fireproximityprompt(prompt)
+                ok = true
+                task.wait(_cfg.BIG_PET_FEED_REQUEST_SPACING or 0.08)
+            end
+        end
+    end)
+
+    return ok
 end
 
 local function tryToolActivateFallback()
@@ -230,21 +295,30 @@ local function tryToolActivateFallback()
     local foods = collectInventoryFood(selected)
     if #foods == 0 then return false end
 
-    local tool = foods[1]
     local ok = false
 
     pcall(function()
-        humanoid:EquipTool(tool)
-        tool:Activate()
-        ok = true
+        for _, tool in ipairs(foods) do
+            humanoid:EquipTool(tool)
+            task.wait(_cfg.BIG_PET_FEED_REQUEST_SPACING or 0.08)
+            tool:Activate()
+            ok = true
+            task.wait(_cfg.BIG_PET_FEED_REQUEST_SPACING or 0.08)
+        end
     end)
+
+    if tryPromptFallback(foods) then
+        ok = true
+    end
 
     return ok
 end
 
 function BigPetFeed.Pulse()
-    local okSilent = trySilentFeed()
-    if not okSilent then
+    local okSilent, hadAttempt = trySilentFeed()
+    local forceFallback = (_cfg.BIG_PET_FEED_FORCE_FALLBACK_AFTER_SILENT == true)
+
+    if (not okSilent) and ((not hadAttempt) or forceFallback) then
         tryToolActivateFallback()
     end
 end

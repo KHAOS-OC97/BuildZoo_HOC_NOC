@@ -29,7 +29,9 @@ return {
     BIG_PET_FEED_PET_COOLDOWN = 6,
     BIG_PET_FEED_REQUEST_SPACING = 0.08,
     BIG_PET_FEED_REMOTE_SCAN_INTERVAL = 30,
-    BIG_PET_FEED_ALLOW_TOOL_ACTIVATE_FALLBACK = false,
+    BIG_PET_FEED_ALLOW_TOOL_ACTIVATE_FALLBACK = true,
+    BIG_PET_FEED_ALLOW_PROMPT_FALLBACK = true,
+    BIG_PET_FEED_FORCE_FALLBACK_AFTER_SILENT = true,
     BIG_PET_FEED_KEYWORDS = {
         "pet", "big", "feed", "food", "eat", "hunger", "consume", "fruit", "use",
     },
