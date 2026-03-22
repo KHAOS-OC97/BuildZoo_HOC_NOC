@@ -154,6 +154,10 @@ local function activateButton(button)
     end)
     if success then return true end
 
+    if _cfg and _cfg.AUTO_BUY_STRICT_COIN_ONLY == true then
+        return false
+    end
+
     if _svc.VirtualInputManager then
         local absPos = button.AbsolutePosition
         local absSize = button.AbsoluteSize
@@ -246,6 +250,46 @@ local function cardLooksOutOfStock(root)
     return false
 end
 
+local function collectCandidateContainers(button)
+    local containers = {}
+    local seen = {}
+
+    local function add(node)
+        if node and not seen[node] then
+            seen[node] = true
+            table.insert(containers, node)
+        end
+    end
+
+    add(button and button.Parent)
+    add(button and button.Parent and button.Parent.Parent)
+    add(button and button.Parent and button.Parent.Parent and button.Parent.Parent.Parent)
+
+    return containers
+end
+
+local function buttonIsSafeCoinTarget(button)
+    if not button or isRobuxButton(button) then
+        return false
+    end
+
+    local nameSig = normalize(button.Name)
+    local textSig = normalize(button.Text)
+    if _cfg and _cfg.AUTO_BUY_STRICT_COIN_ONLY == true then
+        if nameSig ~= "buybutton" and textSig ~= "buy" and textSig ~= "purchase" then
+            return false
+        end
+    end
+
+    for _, container in ipairs(collectCandidateContainers(button)) do
+        if cardLooksOutOfStock(container) then
+            return false
+        end
+    end
+
+    return true
+end
+
 local function findBuyButtonFast(parent)
     if not parent then return nil end
 
@@ -258,12 +302,12 @@ local function findBuyButtonFast(parent)
             local childName = normalize(child.Name)
             local childText = normalize(child.Text)
 
-            if childName == "buybutton" and not isRobuxButton(child) then
+            if childName == "buybutton" and buttonIsSafeCoinTarget(child) then
                 return child
             end
 
             if strictCoinOnly then
-                if (childText == "buy" or childText == "purchase") and not isRobuxButton(child) then
+                if (childText == "buy" or childText == "purchase") and buttonIsSafeCoinTarget(child) then
                     local s = scoreBuyButton(child)
                     if s > bestScore then
                         bestScore = s
@@ -329,7 +373,7 @@ local function refreshShop(playerGui, selected)
     -- Escaneia cards reais da loja: botao BuyButton + textos locais do mesmo container.
     for _, root in ipairs(roots) do
         for _, obj in ipairs(root:GetDescendants()) do
-            if obj:IsA("TextButton") and normalize(obj.Name) == "buybutton" and not isRobuxButton(obj) then
+            if obj:IsA("TextButton") and normalize(obj.Name) == "buybutton" and buttonIsSafeCoinTarget(obj) then
                 local card = obj.Parent
                 local textPool = collectLocalTexts(card)
                 local scanRoot = card
@@ -340,7 +384,7 @@ local function refreshShop(playerGui, selected)
                     scanRoot = card.Parent
                 end
 
-                if not cardLooksOutOfStock(scanRoot) then
+                if not cardLooksOutOfStock(scanRoot) and buttonIsSafeCoinTarget(obj) then
                     for fruitName in pairs(selected) do
                         if not found[fruitName] and textSetHasAnyAlias(textPool, aliasesByFruit[fruitName] or {}) then
                             found[fruitName] = {
@@ -374,7 +418,7 @@ local function refreshShop(playerGui, selected)
                             if not btn and obj.Parent and obj.Parent.Parent then
                                 btn = findBuyButtonFast(obj.Parent.Parent)
                             end
-                            if btn and not isRobuxButton(btn) then
+                            if btn and buttonIsSafeCoinTarget(btn) then
                                 found[fruitName] = {label = obj, button = btn}
                             end
                         end
@@ -547,7 +591,7 @@ local function tryGuiFallback(targets)
         local entry = shop[fruitName]
         if entry and entry.button and entry.button.Parent then
             local strictCoinOnly = (_cfg.AUTO_BUY_STRICT_COIN_ONLY == true)
-            if isRobuxButton(entry.button) then
+            if not buttonIsSafeCoinTarget(entry.button) then
                 continue
             end
             if strictCoinOnly then
