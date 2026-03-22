@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "git-push-all",
+            "type": "shell",
+            "command": "git add -A && git commit --allow-empty -m 'push: todos os arquivos modulares v1.0.3' && git push origin main",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        }
+    ]
+}
