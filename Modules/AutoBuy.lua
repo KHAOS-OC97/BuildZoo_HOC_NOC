@@ -191,16 +191,44 @@ local function invokeRemote(remote, args)
 end
 
 local function buildArgVariants(fruitName, amount)
-    return {
-        {fruitName},
-        {fruitName, amount},
-        {"Buy", fruitName},
-        {"Buy", fruitName, amount},
-        {"Purchase", fruitName},
-        {"Purchase", fruitName, amount},
-        {"Fruit", fruitName},
-        {"Fruit", fruitName, amount},
-    }
+    local base = tostring(fruitName or "")
+    local noSpace = base:gsub("%s+", "")
+    local under = base:gsub("%s+", "_")
+    local dash = base:gsub("%s+", "-")
+
+    local names = {}
+    local seen = {}
+    local function addName(n)
+        if n ~= "" and not seen[n] then
+            seen[n] = true
+            table.insert(names, n)
+        end
+    end
+
+    addName(base)
+    addName(noSpace)
+    addName(under)
+    addName(dash)
+    addName(base:lower())
+    addName(noSpace:lower())
+
+    local variants = {}
+    local function addArgs(...)
+        table.insert(variants, {...})
+    end
+
+    for _, n in ipairs(names) do
+        addArgs(n)
+        addArgs(n, amount)
+        addArgs("Buy", n)
+        addArgs("Buy", n, amount)
+        addArgs("Purchase", n)
+        addArgs("Purchase", n, amount)
+        addArgs("Fruit", n)
+        addArgs("Fruit", n, amount)
+    end
+
+    return variants
 end
 
 local function trySilentBuy(targets)
