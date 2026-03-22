@@ -55,6 +55,11 @@ end
 local function activateButton(button)
     if not button then return false end
 
+    -- Modo estrito: nunca interage com botao que nao seja BuyButton (coin).
+    if (_cfg and _cfg.AUTO_BUY_STRICT_COIN_ONLY == true) and normalize(button.Name) ~= "buybutton" then
+        return false
+    end
+
     local success = false
 
     if typeof(firesignal) == "function" then
@@ -131,16 +136,24 @@ end
 local function findBuyButtonFast(parent)
     if not parent then return nil end
 
+    local strictCoinOnly = (_cfg and _cfg.AUTO_BUY_STRICT_COIN_ONLY == true)
+
     local best, bestScore = nil, -9999
 
     for _, child in ipairs(parent:GetDescendants()) do
         if child:IsA("TextButton") then
-            if normalize(child.Name) == "buybutton" and not isRobuxButton(child) then
+            local childName = normalize(child.Name)
+
+            if childName == "buybutton" and not isRobuxButton(child) then
                 return child
             end
 
+            if strictCoinOnly then
+                continue
+            end
+
             local txt = normalize(child.Text)
-            local nm = normalize(child.Name)
+            local nm = childName
             if txt:find("buy", 1, true)
                 or txt:find("purchase", 1, true)
                 or nm:find("buy", 1, true)
@@ -361,7 +374,11 @@ local function tryGuiFallback(targets)
     for fruitName in pairs(targets) do
         local entry = shop[fruitName]
         if entry and entry.button and entry.button.Parent then
+            local strictCoinOnly = (_cfg.AUTO_BUY_STRICT_COIN_ONLY == true)
             if isRobuxButton(entry.button) then
+                continue
+            end
+            if strictCoinOnly and normalize(entry.button.Name) ~= "buybutton" then
                 continue
             end
             local last = _runtime.LastPurchaseAttempt[fruitName] or 0

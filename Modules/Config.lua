@@ -21,7 +21,9 @@ return {
     AUTO_BUY_REQUEST_SPACING = 0.08,
     AUTO_BUY_REMOTE_SCAN_INTERVAL = 30,
     AUTO_BUY_GUI_SCAN_INTERVAL = 8.0,
+    AUTO_BUY_GUI_ONLY = true,
     AUTO_BUY_ALLOW_GUI_FALLBACK = true,
+    AUTO_BUY_STRICT_COIN_ONLY = true,
     AUTO_BUY_FORCE_GUI_FALLBACK_AFTER_SILENT = true,
 
     -- BigPetFeed (modo silencioso por remotes)
