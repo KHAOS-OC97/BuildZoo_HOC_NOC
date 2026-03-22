@@ -63,7 +63,7 @@ return {
         {name = "Banana",              price = "12M"    },
         {name = "Grape",               price = "50M"    },
         {name = "Pear",                price = "200M"   },
-        {name = "PineApple",           price = "600M"   },
+        {name = "Pineapple",           price = "600M"   },
         {name = "Dragon Fruit",        price = "1.5B"   },
         {name = "Gold Mango",          price = "2B"     },
         {name = "Bloodstone Cycad",    price = "8B"     },
@@ -79,6 +79,53 @@ return {
         {name = "Gingerbread",         price = "80B"    },
         {name = "Candy Cane",          price = "80B"    },
         {name = "Cherry",              price = "80B"    },
+    },
+
+    -- Normalizacao de nomes reais encontrados em varredura runtime.
+    -- "path" e "resId" sao usados para ampliar tentativas de argumentos em remotes.
+    FRUIT_CANONICAL = {
+        ["Strawberry"] = {
+            path = "PetFood/Strawberry",
+            resId = 153,
+            aliases = {"Strawberry", "PetFood/Strawberry"},
+        },
+        ["Blueberry"] = {
+            path = "PetFood/Blueberry",
+            resId = 146,
+            aliases = {"Blueberry", "PetFood/Blueberry"},
+        },
+        ["Watermelon"] = {
+            path = "PetFood/Watermelon",
+            resId = 148,
+            aliases = {"Watermelon", "PetFood/Watermelon"},
+        },
+        ["Apple"] = {
+            path = "PetFood/Apple",
+            resId = 152,
+            aliases = {"Apple", "apple", "PetFood/Apple"},
+        },
+        ["Orange"] = {
+            path = "PetFood/Orange",
+            resId = 149,
+            aliases = {"Orange", "orange", "PetFood/Orange"},
+        },
+        ["Pineapple"] = {
+            path = "PetFood/Pineapple",
+            resId = 150,
+            aliases = {"Pineapple", "PineApple", "pineapple", "PetFood/Pineapple"},
+        },
+        ["Corn"] = {
+            path = "PetFood/Corn",
+            aliases = {"Corn", "PetFood/Corn"},
+        },
+        ["Candy Corn"] = {
+            path = "PetFood/CandyCorn",
+            aliases = {"Candy Corn", "CandyCorn", "PetFood/CandyCorn"},
+        },
+        ["Acorn"] = {
+            path = "PetFood/Acorn",
+            aliases = {"Acorn", "PetFood/Acorn"},
+        },
     },
 
     -- Paleta de cores centralizada

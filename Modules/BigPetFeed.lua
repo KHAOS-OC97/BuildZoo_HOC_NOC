@@ -127,6 +127,27 @@ local function collectInventoryFood(selected)
     return list
 end
 
+local function findCanonicalByName(name)
+    local target = normalize(name)
+    local canonical = _cfg and _cfg.FRUIT_CANONICAL or nil
+    if not canonical then return nil end
+
+    for key, info in pairs(canonical) do
+        if normalize(key) == target then
+            return info
+        end
+        if info.aliases then
+            for _, a in ipairs(info.aliases) do
+                if normalize(a) == target then
+                    return info
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
 local function collectFoodNames(selected, foods)
     local names = {}
     local seen = {}
@@ -141,10 +162,28 @@ local function collectFoodNames(selected, foods)
 
     for fruitName in pairs(selected) do
         addName(fruitName)
+
+        local info = findCanonicalByName(fruitName)
+        if info then
+            addName(info.path)
+            addName(info.resId)
+            for _, a in ipairs(info.aliases or {}) do
+                addName(a)
+            end
+        end
     end
 
     for _, tool in ipairs(foods or {}) do
         addName(tool.Name)
+
+        local info = findCanonicalByName(tool.Name)
+        if info then
+            addName(info.path)
+            addName(info.resId)
+            for _, a in ipairs(info.aliases or {}) do
+                addName(a)
+            end
+        end
     end
 
     return names
@@ -210,35 +249,58 @@ local function buildArgVariants(pet, tool, itemNameOverride)
     local petId = tostring(pet and pet.Name or "")
     local itemName = tostring(itemNameOverride or (tool and tool.Name) or "")
 
-    local variants = {
-        {pet, tool},
-        {petId, itemName},
-        {pet, itemName},
-        {petId, tool},
-        {pet, itemName},
-        {petId, itemName},
+    local itemNames = {}
+    local seen = {}
+    local function addItemName(v)
+        local s = tostring(v or "")
+        if s ~= "" and not seen[s] then
+            seen[s] = true
+            table.insert(itemNames, s)
+        end
+    end
 
-        {"Feed", pet, tool},
-        {"Feed", petId, itemName},
-        {"Feed", pet, itemName},
-        {"FeedPet", pet, tool},
-        {"FeedPet", petId, itemName},
-        {"FeedPet", pet, itemName},
+    addItemName(itemName)
+    local noSpace = itemName:gsub("%s+", "")
+    addItemName(noSpace)
+    addItemName(itemName:lower())
+    addItemName(noSpace:lower())
 
-        {"Use", tool, pet},
-        {"Use", itemName, petId},
-        {"Use", itemName, pet},
-        {"Consume", tool, pet},
-        {"Consume", itemName, petId},
-        {"Consume", itemName, pet},
+    local info = findCanonicalByName(itemName)
+    if info then
+        addItemName(info.path)
+        addItemName(info.resId)
+        for _, a in ipairs(info.aliases or {}) do
+            addItemName(a)
+        end
+    end
 
-        {"Pet", "Feed", pet, tool},
-        {"Pet", "Feed", petId, itemName},
-        {"Pet", "Feed", pet, itemName},
-        {"BigPet", "Feed", pet, tool},
-        {"BigPet", "Feed", petId, itemName},
-        {"BigPet", "Feed", pet, itemName},
-    }
+    local variants = {}
+    local function addArgs(...)
+        table.insert(variants, {...})
+    end
+
+    addArgs(pet, tool)
+    addArgs(petId, tool)
+
+    for _, iname in ipairs(itemNames) do
+        addArgs(petId, iname)
+        addArgs(pet, iname)
+
+        addArgs("Feed", pet, iname)
+        addArgs("Feed", petId, iname)
+        addArgs("FeedPet", pet, iname)
+        addArgs("FeedPet", petId, iname)
+
+        addArgs("Use", iname, pet)
+        addArgs("Use", iname, petId)
+        addArgs("Consume", iname, pet)
+        addArgs("Consume", iname, petId)
+
+        addArgs("Pet", "Feed", pet, iname)
+        addArgs("Pet", "Feed", petId, iname)
+        addArgs("BigPet", "Feed", pet, iname)
+        addArgs("BigPet", "Feed", petId, iname)
+    end
 
     return variants
 end

@@ -37,6 +37,32 @@ local function collectTargets()
     return t
 end
 
+local function collectFruitNamesForMatch(fruitName)
+    local out = {}
+    local seen = {}
+
+    local function add(v)
+        local s = tostring(v or "")
+        if s ~= "" and not seen[s] then
+            seen[s] = true
+            table.insert(out, s)
+        end
+    end
+
+    add(fruitName)
+
+    local info = _cfg and _cfg.FRUIT_CANONICAL and _cfg.FRUIT_CANONICAL[fruitName]
+    if info then
+        add(info.path)
+        add(info.resId)
+        for _, a in ipairs(info.aliases or {}) do
+            add(a)
+        end
+    end
+
+    return out
+end
+
 local function isElementVisible(element)
     if not element or not element.Parent then return false end
 
@@ -209,7 +235,15 @@ local function refreshShop(playerGui, selected)
         if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Text ~= "" then
             local normText = normalize(obj.Text)
             for fruitName in pairs(selected) do
-                if normText:find(normalize(fruitName), 1, true) then
+                local matched = false
+                for _, alias in ipairs(collectFruitNamesForMatch(fruitName)) do
+                    if normText:find(normalize(alias), 1, true) then
+                        matched = true
+                        break
+                    end
+                end
+
+                if matched then
                     local btn = findBuyButtonFast(obj.Parent)
                     if not btn and obj.Parent and obj.Parent.Parent then
                         btn = findBuyButtonFast(obj.Parent.Parent)
@@ -281,26 +315,28 @@ local function invokeRemote(remote, args)
 end
 
 local function buildArgVariants(fruitName, amount)
-    local base = tostring(fruitName or "")
-    local noSpace = base:gsub("%s+", "")
-    local under = base:gsub("%s+", "_")
-    local dash = base:gsub("%s+", "-")
-
     local names = {}
     local seen = {}
     local function addName(n)
-        if n ~= "" and not seen[n] then
-            seen[n] = true
-            table.insert(names, n)
+        local s = tostring(n or "")
+        if s ~= "" and not seen[s] then
+            seen[s] = true
+            table.insert(names, s)
         end
     end
 
-    addName(base)
-    addName(noSpace)
-    addName(under)
-    addName(dash)
-    addName(base:lower())
-    addName(noSpace:lower())
+    for _, alias in ipairs(collectFruitNamesForMatch(fruitName)) do
+        local noSpace = alias:gsub("%s+", "")
+        local under = alias:gsub("%s+", "_")
+        local dash = alias:gsub("%s+", "-")
+
+        addName(alias)
+        addName(noSpace)
+        addName(under)
+        addName(dash)
+        addName(alias:lower())
+        addName(noSpace:lower())
+    end
 
     local variants = {}
     local function addArgs(...)
