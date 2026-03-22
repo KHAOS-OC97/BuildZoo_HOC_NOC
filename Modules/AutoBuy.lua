@@ -148,16 +148,6 @@ local function activateButton(button)
         if success then return true end
     end
 
-    if _cfg and _cfg.AUTO_BUY_STRICT_COIN_ONLY == true then
-        return false
-    end
-
-    pcall(function()
-        button:Activate()
-        success = true
-    end)
-    if success then return true end
-
     if _svc.VirtualInputManager then
         local absPos = button.AbsolutePosition
         local absSize = button.AbsoluteSize
@@ -169,7 +159,18 @@ local function activateButton(button)
             _svc.VirtualInputManager:SendMouseButtonEvent(px, py, 0, false, game, 0)
             success = true
         end)
+
+        if success then return true end
     end
+
+    if _cfg and _cfg.AUTO_BUY_STRICT_COIN_ONLY == true then
+        return false
+    end
+
+    pcall(function()
+        button:Activate()
+        success = true
+    end)
 
     return success
 end
