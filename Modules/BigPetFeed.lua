@@ -83,6 +83,29 @@ local function collectInventoryFood(selected)
     return list
 end
 
+local function collectFoodNames(selected, foods)
+    local names = {}
+    local seen = {}
+
+    local function addName(n)
+        local v = tostring(n or "")
+        if v ~= "" and not seen[v] then
+            seen[v] = true
+            table.insert(names, v)
+        end
+    end
+
+    for fruitName in pairs(selected) do
+        addName(fruitName)
+    end
+
+    for _, tool in ipairs(foods or {}) do
+        addName(tool.Name)
+    end
+
+    return names
+end
+
 local function refreshRemoteCandidates()
     local now = os.clock()
     local scanInterval = _cfg.BIG_PET_FEED_REMOTE_SCAN_INTERVAL or 30
@@ -139,30 +162,38 @@ local function invokeRemote(remote, args)
     return ok, kind, result
 end
 
-local function buildArgVariants(pet, tool)
+local function buildArgVariants(pet, tool, itemNameOverride)
     local petId = tostring(pet and pet.Name or "")
-    local itemName = tostring(tool and tool.Name or "")
+    local itemName = tostring(itemNameOverride or (tool and tool.Name) or "")
 
     local variants = {
         {pet, tool},
         {petId, itemName},
         {pet, itemName},
         {petId, tool},
+        {pet, itemName},
+        {petId, itemName},
 
         {"Feed", pet, tool},
         {"Feed", petId, itemName},
+        {"Feed", pet, itemName},
         {"FeedPet", pet, tool},
         {"FeedPet", petId, itemName},
+        {"FeedPet", pet, itemName},
 
         {"Use", tool, pet},
         {"Use", itemName, petId},
+        {"Use", itemName, pet},
         {"Consume", tool, pet},
         {"Consume", itemName, petId},
+        {"Consume", itemName, pet},
 
         {"Pet", "Feed", pet, tool},
         {"Pet", "Feed", petId, itemName},
+        {"Pet", "Feed", pet, itemName},
         {"BigPet", "Feed", pet, tool},
         {"BigPet", "Feed", petId, itemName},
+        {"BigPet", "Feed", pet, itemName},
     }
 
     return variants
@@ -174,7 +205,8 @@ local function trySilentFeed()
 
     local selected = collectSelectedTargets()
     local foods = collectInventoryFood(selected)
-    if #foods == 0 then return false end
+    local foodNames = collectFoodNames(selected, foods)
+    if #foods == 0 and #foodNames == 0 then return false end
 
     local remotes = refreshRemoteCandidates()
     if #remotes == 0 then return false end
@@ -192,27 +224,54 @@ local function trySilentFeed()
         if (now - last) >= cooldown then
             local sent = false
 
+            local didLoop = false
+
             for _, tool in ipairs(foods) do
-                local variants = buildArgVariants(pet, tool)
+                for _, itemName in ipairs(foodNames) do
+                    local variants = buildArgVariants(pet, tool, itemName)
+                    didLoop = true
 
-                for _, remote in ipairs(remotes) do
-                    for _, args in ipairs(variants) do
-                        local ok, kind, result = invokeRemote(remote, args)
-                        if ok then
-                            anyAttempt = true
+                    for _, remote in ipairs(remotes) do
+                        for _, args in ipairs(variants) do
+                            local ok, kind, result = invokeRemote(remote, args)
+                            if ok then
+                                anyAttempt = true
 
-                            -- RemoteFunction permite inferir sucesso de forma mais confiavel.
-                            if kind == "function" and result ~= false and result ~= nil then
-                                anyReliableSuccess = true
-                                sent = true
-                                break
+                                -- RemoteFunction permite inferir sucesso de forma mais confiavel.
+                                if kind == "function" and result ~= false and result ~= nil then
+                                    anyReliableSuccess = true
+                                    sent = true
+                                    break
+                                end
                             end
                         end
+                        if sent then break end
                     end
                     if sent then break end
                 end
-
                 if sent then break end
+            end
+
+            if (not didLoop) and #foodNames > 0 then
+                for _, itemName in ipairs(foodNames) do
+                    local variants = buildArgVariants(pet, nil, itemName)
+
+                    for _, remote in ipairs(remotes) do
+                        for _, args in ipairs(variants) do
+                            local ok, kind, result = invokeRemote(remote, args)
+                            if ok then
+                                anyAttempt = true
+                                if kind == "function" and result ~= false and result ~= nil then
+                                    anyReliableSuccess = true
+                                    sent = true
+                                    break
+                                end
+                            end
+                        end
+                        if sent then break end
+                    end
+                    if sent then break end
+                end
             end
 
             if sent then

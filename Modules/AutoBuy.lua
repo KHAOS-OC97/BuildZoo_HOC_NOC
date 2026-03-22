@@ -82,7 +82,7 @@ end
 local function findBuyButtonFast(parent)
     if not parent then return nil end
 
-    for _, child in ipairs(parent:GetChildren()) do
+    for _, child in ipairs(parent:GetDescendants()) do
         if child:IsA("TextButton") then
             local txt = normalize(child.Text)
             local nm = normalize(child.Name)
@@ -128,6 +128,9 @@ local function refreshShop(playerGui, selected)
             for fruitName in pairs(selected) do
                 if normText:find(normalize(fruitName), 1, true) then
                     local btn = findBuyButtonFast(obj.Parent)
+                    if not btn and obj.Parent and obj.Parent.Parent then
+                        btn = findBuyButtonFast(obj.Parent.Parent)
+                    end
                     if btn and isElementVisible(btn) then
                         found[fruitName] = {label = obj, button = btn}
                     end
@@ -178,16 +181,20 @@ end
 
 local function invokeRemote(remote, args)
     local ok = false
+    local kind = "unknown"
+    local result = nil
     pcall(function()
         if remote:IsA("RemoteEvent") then
             remote:FireServer(unpack(args))
             ok = true
+            kind = "event"
         elseif remote:IsA("RemoteFunction") then
-            remote:InvokeServer(unpack(args))
+            result = remote:InvokeServer(unpack(args))
             ok = true
+            kind = "function"
         end
     end)
-    return ok
+    return ok, kind, result
 end
 
 local function buildArgVariants(fruitName, amount)
@@ -233,10 +240,11 @@ end
 
 local function trySilentBuy(targets)
     local remotes = refreshRemoteCandidates()
-    if #remotes == 0 then return false end
+    if #remotes == 0 then return false, false end
 
     local now = os.clock()
     local anyAttempt = false
+    local anyReliableSuccess = false
     local fruitCooldown = _cfg.AUTO_BUY_FRUIT_COOLDOWN or 20
     local amount = math.max(1, tonumber(_G_BuyAmount) or 1)
 
@@ -248,10 +256,15 @@ local function trySilentBuy(targets)
 
             for _, remote in ipairs(remotes) do
                 for _, args in ipairs(variants) do
-                    if invokeRemote(remote, args) then
-                        sent = true
+                    local ok, kind, result = invokeRemote(remote, args)
+                    if ok then
                         anyAttempt = true
-                        break
+
+                        if kind == "function" and result ~= false and result ~= nil then
+                            anyReliableSuccess = true
+                            sent = true
+                            break
+                        end
                     end
                 end
                 if sent then break end
@@ -260,11 +273,13 @@ local function trySilentBuy(targets)
             if sent then
                 _runtime.LastPurchaseAttempt[fruitName] = now
                 task.wait(_cfg.AUTO_BUY_REQUEST_SPACING or 0.08)
+            elseif anyAttempt then
+                _runtime.LastPurchaseAttempt[fruitName] = now
             end
         end
     end
 
-    return anyAttempt
+    return anyReliableSuccess, anyAttempt
 end
 
 local function tryGuiFallback(targets)
@@ -327,7 +342,10 @@ function AutoBuy.Init(ctx)
                             _runtime.LastSweep = now
 
                             local okSilent = trySilentBuy(targets)
-                            if not okSilent then
+                            local reliableSilent, hadAttempt = trySilentBuy(targets)
+                            local forceGuiFallback = (_cfg.AUTO_BUY_FORCE_GUI_FALLBACK_AFTER_SILENT == true)
+
+                            if (not reliableSilent) and ((not hadAttempt) or forceGuiFallback) then
                                 tryGuiFallback(targets)
                             end
                         end
