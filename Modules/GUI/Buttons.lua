@@ -7,7 +7,7 @@
 
 local Buttons = {}
 
-local BASE_Y = 0.58
+local BASE_Y = 0.52
 local STEP   = 0.06
 
 local function makeBtn(parent, text, pos, cfg)

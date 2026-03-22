@@ -52,12 +52,12 @@ function Toggles.Build(Main, ctx)
     local svc = ctx.Services
 
     local defs = {
-        {"MAGNET STEALTH",      UDim2.new(0.05, 0, 0.08, 0), function(v) _G_AutoCollect = v end},
-        {"AUTO-BUILD REMOTE",   UDim2.new(0.05, 0, 0.15, 0), function(v) _G_AutoBuild   = v end},
-        {"AUTO-GIFTS (GUI)",    UDim2.new(0.05, 0, 0.22, 0), function(v) _G_AutoGifts   = v end},
-        {"JUMP INFINITY",       UDim2.new(0.05, 0, 0.29, 0), function(v) _G_InfJump     = v end},
-        {"MAX RANGE ESP (RGB)", UDim2.new(0.05, 0, 0.36, 0), function(v) _G_ESP         = v end},
-        {"ANTI-AFK MARINES",   UDim2.new(0.05, 0, 0.43, 0), function(v) _G_AntiAFK     = v end},
+        {"MAGNET STEALTH",      UDim2.new(0.05, 0, 0.18, 0), function(v) _G_AutoCollect = v end},
+        {"AUTO-BUILD REMOTE",   UDim2.new(0.05, 0, 0.25, 0), function(v) _G_AutoBuild   = v end},
+        {"AUTO-GIFTS (GUI)",    UDim2.new(0.05, 0, 0.32, 0), function(v) _G_AutoGifts   = v end},
+        {"JUMP INFINITY",       UDim2.new(0.05, 0, 0.39, 0), function(v) _G_InfJump     = v end},
+        {"MAX RANGE ESP (RGB)", UDim2.new(0.05, 0, 0.46, 0), function(v) _G_ESP         = v end},
+        {"ANTI-AFK MARINES",   UDim2.new(0.05, 0, 0.53, 0), function(v) _G_AntiAFK     = v end},
     }
 
     for _, def in ipairs(defs) do

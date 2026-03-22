@@ -11,7 +11,7 @@
 
 local FruitMenu = {}
 
-local BASE_Y = 0.58
+local BASE_Y = 0.65
 local STEP   = 0.06
 
 function FruitMenu.Build(Main, ctx)
