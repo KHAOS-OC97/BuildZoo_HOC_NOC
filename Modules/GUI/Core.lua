@@ -18,7 +18,16 @@ local function safeParentAndProtect(gui, svc)
     if type(gethui) == "function" then
         pcall(function() target = gethui() end)
     end
-    pcall(function() gui.Parent = target end)
+
+    local parented = pcall(function() gui.Parent = target end)
+
+    -- Alguns executores bloqueiam CoreGui/gethui; fallback para PlayerGui.
+    if (not parented) or (not gui.Parent) then
+        local playerGui = svc.LocalPlayer and svc.LocalPlayer:FindFirstChild("PlayerGui")
+        if playerGui then
+            pcall(function() gui.Parent = playerGui end)
+        end
+    end
 
     if type(syn) == "table" and type(syn.protect_gui) == "function" then
         pcall(function() syn.protect_gui(gui) end)
