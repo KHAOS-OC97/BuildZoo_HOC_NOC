@@ -159,6 +159,34 @@ local function scoreBuyButton(button)
     return score
 end
 
+local function collectLocalTexts(root)
+    local texts = {}
+    if not root then return texts end
+
+    for _, obj in ipairs(root:GetDescendants()) do
+        if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Text and obj.Text ~= "" then
+            table.insert(texts, normalize(obj.Text))
+        end
+    end
+
+    return texts
+end
+
+local function textSetHasAnyAlias(texts, aliases)
+    if #texts == 0 or #aliases == 0 then return false end
+
+    for _, t in ipairs(texts) do
+        for _, a in ipairs(aliases) do
+            local an = normalize(a)
+            if an ~= "" and (t:find(an, 1, true) or an:find(t, 1, true)) then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
 local function findBuyButtonFast(parent)
     if not parent then return nil end
 
@@ -231,25 +259,57 @@ local function refreshShop(playerGui, selected)
     end
 
     local found = {}
-    for _, obj in ipairs(playerGui:GetDescendants()) do
-        if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Text ~= "" then
-            local normText = normalize(obj.Text)
-            for fruitName in pairs(selected) do
-                local matched = false
-                for _, alias in ipairs(collectFruitNamesForMatch(fruitName)) do
-                    if normText:find(normalize(alias), 1, true) then
-                        matched = true
-                        break
-                    end
-                end
 
-                if matched then
-                    local btn = findBuyButtonFast(obj.Parent)
-                    if not btn and obj.Parent and obj.Parent.Parent then
-                        btn = findBuyButtonFast(obj.Parent.Parent)
+    -- Mapa de aliases por fruta para match rapido.
+    local aliasesByFruit = {}
+    for fruitName in pairs(selected) do
+        aliasesByFruit[fruitName] = collectFruitNamesForMatch(fruitName)
+    end
+
+    -- Escaneia cards reais da loja: botao BuyButton + textos locais do mesmo container.
+    for _, obj in ipairs(playerGui:GetDescendants()) do
+        if obj:IsA("TextButton") and normalize(obj.Name) == "buybutton" and not isRobuxButton(obj) then
+            local card = obj.Parent
+            local textPool = collectLocalTexts(card)
+
+            -- fallback: alguns layouts colocam nome/preco um nivel acima
+            if #textPool == 0 and card and card.Parent then
+                textPool = collectLocalTexts(card.Parent)
+            end
+
+            for fruitName in pairs(selected) do
+                if not found[fruitName] and textSetHasAnyAlias(textPool, aliasesByFruit[fruitName] or {}) then
+                    found[fruitName] = {
+                        label = obj,
+                        button = obj,
+                    }
+                end
+            end
+        end
+    end
+
+    -- Fallback legado para layouts fora do padrao BuyButton.
+    if next(found) == nil then
+        for _, obj in ipairs(playerGui:GetDescendants()) do
+            if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Text ~= "" then
+                local normText = normalize(obj.Text)
+                for fruitName in pairs(selected) do
+                    local matched = false
+                    for _, alias in ipairs(aliasesByFruit[fruitName] or {}) do
+                        if normText:find(normalize(alias), 1, true) then
+                            matched = true
+                            break
+                        end
                     end
-                    if btn and not isRobuxButton(btn) then
-                        found[fruitName] = {label = obj, button = btn}
+
+                    if matched then
+                        local btn = findBuyButtonFast(obj.Parent)
+                        if not btn and obj.Parent and obj.Parent.Parent then
+                            btn = findBuyButtonFast(obj.Parent.Parent)
+                        end
+                        if btn and not isRobuxButton(btn) then
+                            found[fruitName] = {label = obj, button = btn}
+                        end
                     end
                 end
             end
