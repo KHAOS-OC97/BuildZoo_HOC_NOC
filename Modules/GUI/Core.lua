@@ -50,7 +50,7 @@ function GUICore.Build(ctx)
 
     -- ── Frame principal ───────────────────────────────────────────────────────
     local Main                     = Instance.new("Frame")
-    Main.Size                      = UDim2.new(0, 230, 0, 450)
+    Main.Size                      = UDim2.new(0, 230, 0, 420)
     Main.Position                  = UDim2.new(1, -570, 0, 40)
     Main.BackgroundColor3          = cfg.Colors.Dark
     Main.BackgroundTransparency    = 0.4
@@ -85,41 +85,6 @@ function GUICore.Build(ctx)
     Title.TextColor3               = cfg.Colors.White
     Title.TextSize                 = 14
     Title.BackgroundTransparency   = 1
-
-    -- ── Botão START/STOP (Sessão única) ───────────────────────────────────────
-    local StartStopBtn                 = Instance.new("TextButton", Main)
-    StartStopBtn.Size                  = UDim2.new(0.9, 0, 0, 26)
-    StartStopBtn.Position              = UDim2.new(0.05, 0, 0.042, 0)
-    StartStopBtn.Font                  = Enum.Font.GothamBold
-    StartStopBtn.TextSize              = 11
-    StartStopBtn.BorderSizePixel       = 0
-    Instance.new("UICorner", StartStopBtn).CornerRadius = UDim.new(0, 6)
-
-    local function updateStartStopBtn()
-        if _G_Running then
-            StartStopBtn.Text           = "🟢 SCRIPT ATIVO"
-            StartStopBtn.BackgroundColor3 = cfg.Colors.Green
-            StartStopBtn.TextColor3       = cfg.Colors.White
-        else
-            StartStopBtn.Text           = "🔴 SCRIPT PARADO"
-            StartStopBtn.BackgroundColor3 = cfg.Colors.Red
-            StartStopBtn.TextColor3       = cfg.Colors.White
-        end
-    end
-
-    updateStartStopBtn()
-
-    StartStopBtn.MouseButton1Click:Connect(function()
-        if _G_Running then
-            _G_Running = false
-        else
-            _G_Running = true
-            _G_SessionID = (_G_SessionID or 0) + 1
-        end
-        updateStartStopBtn()
-    end)
-
-    stored.StartStopBtn = StartStopBtn
 
     -- ── Botão fechar ──────────────────────────────────────────────────────────
     local Close                    = Instance.new("TextButton", Main)

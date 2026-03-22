@@ -9,9 +9,6 @@
 -- Sempre reinicia o script como "ativo"
 _G_Running = true
 
--- ID único da sessão atual (incrementa a cada início)
-_G_SessionID = (_G_SessionID or 0) + 1
-
 -- Preserva toggles do usuário entre re-execuções
 _G_AutoCollect = (_G_AutoCollect == nil) and false or _G_AutoCollect
 _G_AutoBuild   = (_G_AutoBuild   == nil) and false or _G_AutoBuild
@@ -34,7 +31,6 @@ local State = {
     Stored = {
         ScreenGui      = nil,
         Main           = nil,
-        StartStopBtn   = nil,
         SpeedBtn       = nil,
         FruitBtn       = nil,
         HopBtn         = nil,
@@ -58,7 +54,6 @@ function State.ClearStored()
     State.Stored = {
         ScreenGui      = nil,
         Main           = nil,
-        StartStopBtn   = nil,
         SpeedBtn       = nil,
         FruitBtn       = nil,
         HopBtn         = nil,
