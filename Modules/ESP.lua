@@ -7,26 +7,27 @@
 
 local ESP = {}
 local _svc, _state
+local _runtime
 
 local TAG_NAME = "HOC_ELITE_TAG"
 
 local function createTag(head, displayName)
     local tag = Instance.new("BillboardGui")
     tag.Name             = TAG_NAME
-    tag.Size             = UDim2.new(0, 300, 0, 60)
+    tag.Size             = UDim2.new(0, 300, 0, 70)
     tag.AlwaysOnTop      = true
-    tag.MaxDistance      = 9999999
-    tag.StudsOffset      = Vector3.new(0, 3.5, 0)
+    tag.MaxDistance      = 10000000
+    tag.StudsOffset      = Vector3.new(0, 4, 0)
     tag.LightInfluence   = 0
 
     local lbl                  = Instance.new("TextLabel", tag)
-    lbl.Name                   = "Lbl"
+    lbl.Name                   = "DisplayNameText"
     lbl.Size                   = UDim2.new(1, 0, 1, 0)
     lbl.BackgroundTransparency = 1
     lbl.Text                   = displayName
     lbl.Font                   = Enum.Font.GothamBold
     lbl.TextSize               = 18
-    lbl.TextStrokeTransparency = 0.4
+    lbl.TextStrokeTransparency = 0
     lbl.TextStrokeColor3       = Color3.new(0, 0, 0)
     lbl.TextColor3             = Color3.new(1, 1, 1)
 
@@ -64,34 +65,43 @@ function ESP.Init(ctx)
     _svc   = ctx.Services
     _state = ctx.State
 
-    task.spawn(function()
-        while _G_Running do
-            if _G_ESP then
-                for _, p in pairs(_svc.Players:GetPlayers()) do
-                    if p ~= _svc.LocalPlayer and p.Character then
-                        local head = p.Character:FindFirstChild("Head")
-                        if head then
-                            local tag = head:FindFirstChild(TAG_NAME)
-                            if not tag then
-                                tag = createTag(head, p.DisplayName .. "  [" .. p.Name .. "]")
-                            end
-                            -- Atualiza cor RGB
-                            if tag then
-                                local lbl = tag:FindFirstChild("Lbl")
-                                if lbl then
-                                    pcall(function() lbl.TextColor3 = _state.GlobalColor end)
-                                end
+    _G.__HOC_RUNTIME = _G.__HOC_RUNTIME or {}
+    _G.__HOC_RUNTIME.ESP = _G.__HOC_RUNTIME.ESP or {
+        RenderConn = nil,
+    }
+    _runtime = _G.__HOC_RUNTIME.ESP
+
+    if _runtime.RenderConn then
+        pcall(function() _runtime.RenderConn:Disconnect() end)
+        _runtime.RenderConn = nil
+    end
+
+    -- RenderStepped replica o comportamento antigo e mantém atualização visual constante.
+    _runtime.RenderConn = _svc.RunService.RenderStepped:Connect(function()
+        if not _G_Running then return end
+
+        if _G_ESP then
+            for _, p in pairs(_svc.Players:GetPlayers()) do
+                if p ~= _svc.LocalPlayer and p.Character then
+                    local head = p.Character:FindFirstChild("Head")
+                    if head then
+                        local tag = head:FindFirstChild(TAG_NAME)
+                        if not tag then
+                            tag = createTag(head, p.DisplayName)
+                        end
+
+                        if tag then
+                            local lbl = tag:FindFirstChild("DisplayNameText")
+                            if lbl then
+                                pcall(function() lbl.TextColor3 = _state.GlobalColor end)
                             end
                         end
                     end
                 end
-            else
-                removeAllTags()
             end
-            task.wait(0.05)
+        else
+            removeAllTags()
         end
-        -- Limpeza final quando script para
-        removeAllTags()
     end)
 end
 
