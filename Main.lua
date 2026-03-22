@@ -46,6 +46,21 @@ local function loadModule(relPath)
     return result
 end
 
+local function safeInvoke(label, fn)
+    if type(fn) ~= "function" then
+        warn("[HOC NOC] Etapa ausente: " .. tostring(label))
+        return false
+    end
+
+    local ok, err = pcall(fn)
+    if not ok then
+        warn("[HOC NOC] Falha em " .. tostring(label) .. ": " .. tostring(err))
+        return false
+    end
+
+    return true
+end
+
 -- ── Módulos base (ordem importa) ──────────────────────────────────────────────
 local ctx = {}
 ctx.Config   = loadModule("Modules/Config.lua")
@@ -69,15 +84,15 @@ ctx.GUI = {
 }
 
 -- ── Inicialização das features (conecta eventos, inicia loops) ────────────────
-ctx.AntiAFK.Init(ctx)
-ctx.ESP.Init(ctx)
-ctx.Movement.Init(ctx)
-ctx.AutoBuy.Init(ctx)
-ctx.ServerHop.Init(ctx)
-ctx.Teleport.Init(ctx)
+safeInvoke("AntiAFK.Init", function() ctx.AntiAFK.Init(ctx) end)
+safeInvoke("ESP.Init", function() ctx.ESP.Init(ctx) end)
+safeInvoke("Movement.Init", function() ctx.Movement.Init(ctx) end)
+safeInvoke("AutoBuy.Init", function() ctx.AutoBuy.Init(ctx) end)
+safeInvoke("ServerHop.Init", function() ctx.ServerHop.Init(ctx) end)
+safeInvoke("Teleport.Init", function() ctx.Teleport.Init(ctx) end)
 
 -- ── Construção inicial da GUI ─────────────────────────────────────────────────
-pcall(function() ctx.GUI.Core.Build(ctx) end)
+safeInvoke("GUI.Core.Build", function() ctx.GUI.Core.Build(ctx) end)
 
 -- ── Loop monitor ──────────────────────────────────────────────────────────────
 -- Reconstrói a GUI caso seja removida externamente e envia pings Anti-AFK
@@ -86,10 +101,10 @@ task.spawn(function()
     while _G_Running do
         local stored = ctx.State.Stored
         if not (stored.ScreenGui and stored.ScreenGui.Parent) then
-            pcall(function() ctx.GUI.Core.Build(ctx) end)
+            safeInvoke("GUI.Core.Build (monitor)", function() ctx.GUI.Core.Build(ctx) end)
         end
 
-        ctx.AntiAFK.Ping()
+        safeInvoke("AntiAFK.Ping", function() ctx.AntiAFK.Ping() end)
 
         task.wait(ctx.Config.ANTI_AFK_INTERVAL)
     end
@@ -99,12 +114,16 @@ end)
 local LocalPlayer = ctx.Services.LocalPlayer
 
 LocalPlayer.CharacterAdded:Connect(function(char)
-    ctx.Movement.ApplyToCharacter(char)
+    safeInvoke("Movement.ApplyToCharacter(CharacterAdded)", function()
+        ctx.Movement.ApplyToCharacter(char)
+    end)
 end)
 
 -- Aplica ao personagem já existente (caso o script rode após o spawn)
 if LocalPlayer.Character then
-    pcall(function() ctx.Movement.ApplyToCharacter(LocalPlayer.Character) end)
+    safeInvoke("Movement.ApplyToCharacter(Current)", function()
+        ctx.Movement.ApplyToCharacter(LocalPlayer.Character)
+    end)
 end
 
 -- Fim de Main.lua
