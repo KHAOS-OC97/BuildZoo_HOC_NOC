@@ -540,6 +540,10 @@ local function collectSilentEligibleTargets(targets)
         end
     end
 
+    if next(eligible) == nil then
+        return targets
+    end
+
     return eligible
 end
 
@@ -772,6 +776,8 @@ function AutoBuy.Init(ctx)
                                 if not reliableSilent then
                                     tryGuiFallback(targets)
                                 end
+                            else
+                                tryGuiFallback(targets)
                             end
                         end
                     end
