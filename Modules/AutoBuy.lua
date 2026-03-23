@@ -21,6 +21,21 @@ local function normalize(text)
     return tostring(text or ""):lower():gsub("%s+", "")
 end
 
+local function getGuiText(obj)
+    if not obj then return "" end
+    local ok, value = pcall(function()
+        return obj.Text
+    end)
+    if ok and type(value) == "string" then
+        return value
+    end
+    return ""
+end
+
+local function isGuiButton(obj)
+    return obj and (obj:IsA("TextButton") or obj:IsA("ImageButton"))
+end
+
 local function isRobuxLike(text)
     local s = normalize(text)
     return s:find("robux", 1, true)
@@ -63,7 +78,7 @@ local function collectFruitShopRoots(playerGui)
     for _, obj in ipairs(playerGui:GetDescendants()) do
         if matchesFruitShopKeyword(obj.Name) then
             add(obj)
-        elseif obj:IsA("TextButton") and normalize(obj.Name) == "buybutton" then
+        elseif isGuiButton(obj) and normalize(obj.Name) == "buybutton" then
             local parent = obj.Parent
             if parent then
                 add(parent)
@@ -128,7 +143,7 @@ local function activateButton(button)
     -- Modo estrito: nunca interage com botao que nao seja BuyButton (coin).
     if (_cfg and _cfg.AUTO_BUY_STRICT_COIN_ONLY == true) then
         local nameSig = normalize(button.Name)
-        local textSig = normalize(button.Text)
+        local textSig = normalize(getGuiText(button))
         local isCoin = (nameSig == "buybutton")
             or textSig == "buy"
             or textSig == "purchase"
@@ -187,7 +202,7 @@ function isRobuxButton(button)
     if not button then return false end
 
     local nameSig = normalize(button.Name)
-    local textSig = normalize(button.Text)
+    local textSig = normalize(getGuiText(button))
     if isRobuxLike(nameSig) or isRobuxLike(textSig) then
         return true
     end
@@ -198,7 +213,7 @@ end
 local function scoreBuyButton(button)
     local score = 0
     local nameSig = normalize(button.Name)
-    local textSig = normalize(button.Text)
+    local textSig = normalize(getGuiText(button))
 
     if nameSig == "buybutton" then score = score + 30 end
     if nameSig:find("buybutton", 1, true) then score = score + 12 end
@@ -277,9 +292,9 @@ dismissRobuxModal = function()
     if not modalRoot then return false end
 
     for _, obj in ipairs(modalRoot:GetDescendants()) do
-        if (obj:IsA("TextButton") or obj:IsA("ImageButton")) and isElementVisible(obj) then
+        if isGuiButton(obj) and isElementVisible(obj) then
             local nameSig = normalize(obj.Name)
-            local textSig = normalize(obj.Text)
+            local textSig = normalize(getGuiText(obj))
             if nameSig:find("close", 1, true)
                 or textSig == "x"
                 or textSig == "close"
@@ -385,9 +400,9 @@ local function findBuyButtonFast(parent)
     local best, bestScore = nil, -9999
 
     for _, child in ipairs(parent:GetDescendants()) do
-        if child:IsA("TextButton") then
+        if isGuiButton(child) then
             local childName = normalize(child.Name)
-            local childText = normalize(child.Text)
+            local childText = normalize(getGuiText(child))
 
             if childName == "buybutton" and buttonIsSafeCoinTarget(child) then
                 return child
@@ -460,7 +475,7 @@ local function refreshShop(playerGui, selected)
     -- Escaneia cards reais da loja: botao BuyButton + textos locais do mesmo container.
     for _, root in ipairs(roots) do
         for _, obj in ipairs(root:GetDescendants()) do
-            if obj:IsA("TextButton") and normalize(obj.Name) == "buybutton" and buttonIsSafeCoinTarget(obj) then
+            if isGuiButton(obj) and normalize(obj.Name) == "buybutton" and buttonIsSafeCoinTarget(obj) then
                 local card = obj.Parent
                 local textPool = collectLocalTexts(card)
                 local scanRoot = card
@@ -710,7 +725,7 @@ local function tryGuiFallback(targets)
             end
             if strictCoinOnly then
                 local nm = normalize(entry.button.Name)
-                local tx = normalize(entry.button.Text)
+                            local tx = normalize(getGuiText(entry.button))
                 if nm ~= "buybutton" and tx ~= "buy" and tx ~= "purchase" then
                     continue
                 end
