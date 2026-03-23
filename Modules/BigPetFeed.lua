@@ -555,6 +555,49 @@ local function moveNearPet(pet)
     return ok
 end
 
+local function getPromptHoldDuration(prompt)
+    local hold = 0
+
+    pcall(function()
+        hold = tonumber(prompt.HoldDuration) or 0
+    end)
+
+    local minimum = _cfg.BIG_PET_FEED_PROMPT_MIN_HOLD or 5
+    local padding = _cfg.BIG_PET_FEED_PROMPT_HOLD_PADDING or 0.2
+
+    return math.max(hold, minimum) + padding
+end
+
+local function firePromptWithHold(prompt)
+    if not prompt then return false end
+
+    local holdDuration = getPromptHoldDuration(prompt)
+
+    if type(fireproximityprompt) == "function" then
+        local ok = pcall(function()
+            fireproximityprompt(prompt, holdDuration)
+        end)
+        if ok then
+            task.wait(holdDuration)
+            return true
+        end
+    end
+
+    local began = pcall(function()
+        prompt:InputHoldBegin()
+    end)
+
+    if began then
+        task.wait(holdDuration)
+        pcall(function()
+            prompt:InputHoldEnd()
+        end)
+        return true
+    end
+
+    return false
+end
+
 local function tryPromptFallback(foods)
     if _cfg.BIG_PET_FEED_ALLOW_PROMPT_FALLBACK ~= true then
         return false
@@ -588,8 +631,9 @@ local function tryPromptFallback(foods)
             for _ = 1, (_cfg.BIG_PET_FEED_PROMPT_RETRY or 3) do
                 local prompt = findPetPrompt(pet) or findPromptNearPet(pet)
                 if prompt then
-                    fireproximityprompt(prompt)
-                    ok = true
+                    if firePromptWithHold(prompt) then
+                        ok = true
+                    end
                     task.wait(_cfg.BIG_PET_FEED_REQUEST_SPACING or 0.08)
                 end
             end
@@ -636,8 +680,9 @@ local function tryToolActivateFallback()
                 if canUsePrompt then
                     local prompt = findPetPrompt(pet) or findPromptNearPet(pet)
                     if prompt then
-                        fireproximityprompt(prompt)
-                        ok = true
+                        if firePromptWithHold(prompt) then
+                            ok = true
+                        end
                         task.wait(spacing)
                     end
                 end

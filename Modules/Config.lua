@@ -38,6 +38,8 @@ return {
     BIG_PET_FEED_INTERACT_DISTANCE = 4,
     BIG_PET_FEED_PROMPT_RADIUS = 20,
     BIG_PET_FEED_PROMPT_RETRY = 3,
+    BIG_PET_FEED_PROMPT_MIN_HOLD = 5,
+    BIG_PET_FEED_PROMPT_HOLD_PADDING = 0.2,
     BIG_PET_FEED_KEYWORDS = {
         "pet", "big", "feed", "food", "eat", "hunger", "consume", "fruit", "use",
     },
