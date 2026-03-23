@@ -550,6 +550,33 @@ local function findPetPrompt(pet)
     return best
 end
 
+local function getPromptPosition(prompt)
+    if not prompt then return nil end
+
+    local parent = prompt.Parent
+    if parent then
+        if parent:IsA("BasePart") then
+            return parent.Position
+        end
+
+        if parent:IsA("Attachment") then
+            local ok, worldPos = pcall(function()
+                return parent.WorldPosition
+            end)
+            if ok and worldPos then
+                return worldPos
+            end
+
+            local grandParent = parent.Parent
+            if grandParent and grandParent:IsA("BasePart") then
+                return grandParent.Position
+            end
+        end
+    end
+
+    return nil
+end
+
 local function findPromptNearPet(pet)
     local petCf = getPetPivotCFrame(pet)
     if not petCf then return nil end
@@ -559,10 +586,9 @@ local function findPromptNearPet(pet)
 
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("ProximityPrompt") then
-            local parent = obj.Parent
-            local part = parent and parent:IsA("BasePart") and parent or nil
-            if part then
-                local d = (part.Position - petCf.Position).Magnitude
+            local promptPosition = getPromptPosition(obj)
+            if promptPosition then
+                local d = (promptPosition - petCf.Position).Magnitude
                 if d < bestDist and d <= (_cfg.BIG_PET_FEED_PROMPT_RADIUS or 20) then
                     local sig = normalize(obj.Name .. " " .. tostring(obj.ActionText) .. " " .. tostring(obj.ObjectText))
                     if sig:find("feed", 1, true)
@@ -589,10 +615,9 @@ local function findPromptNearPosition(position)
 
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("ProximityPrompt") then
-            local parent = obj.Parent
-            local part = parent and parent:IsA("BasePart") and parent or nil
-            if part then
-                local d = (part.Position - position).Magnitude
+            local promptPosition = getPromptPosition(obj)
+            if promptPosition then
+                local d = (promptPosition - position).Magnitude
                 if d < bestDist and d <= (_cfg.BIG_PET_FEED_PROMPT_RADIUS or 20) then
                     local sig = normalize(obj.Name .. " " .. tostring(obj.ActionText) .. " " .. tostring(obj.ObjectText))
                     if sig:find("feed", 1, true)
@@ -693,10 +718,6 @@ local function tryPromptFallback(foods)
         return false
     end
 
-    if type(fireproximityprompt) ~= "function" then
-        return false
-    end
-
     local lp = _svc.LocalPlayer
     local char = lp and lp.Character
     if not lp or not char then return false end
@@ -753,7 +774,6 @@ local function tryToolActivateFallback()
 
     local ok = false
     local spacing = _cfg.BIG_PET_FEED_REQUEST_SPACING or 0.08
-    local canUsePrompt = (type(fireproximityprompt) == "function")
 
     pcall(function()
         for _, target in ipairs(targets) do
@@ -767,14 +787,12 @@ local function tryToolActivateFallback()
                 ok = true
                 task.wait(spacing)
 
-                if canUsePrompt then
-                    local prompt = findPromptForTarget(target)
-                    if prompt then
-                        if firePromptWithHold(prompt) then
-                            ok = true
-                        end
-                        task.wait(spacing)
+                local prompt = findPromptForTarget(target)
+                if prompt then
+                    if firePromptWithHold(prompt) then
+                        ok = true
                     end
+                    task.wait(spacing)
                 end
             end
         end
@@ -792,7 +810,13 @@ function BigPetFeed.Pulse()
     local forceFallback = (_cfg.BIG_PET_FEED_FORCE_FALLBACK_AFTER_SILENT == true)
 
     if (not okSilent) and ((not hadAttempt) or forceFallback) then
-        tryToolActivateFallback()
+        local selected = collectSelectedTargets()
+        local foods = collectInventoryFood(selected)
+        local okPrompt = tryPromptFallback(foods)
+
+        if not okPrompt then
+            tryToolActivateFallback()
+        end
     end
 end
 
