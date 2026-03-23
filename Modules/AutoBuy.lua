@@ -689,12 +689,16 @@ local function tryGuiFallback(targets)
             end
             local last = _runtime.LastPurchaseAttempt[fruitName] or 0
             if (now - last) >= fruitCooldown then
+                local clicked = false
                 for _ = 1, amount do
                     if not activateButton(entry.button) then break end
+                    clicked = true
                     task.wait(_cfg.AUTO_BUY_REQUEST_SPACING or 0.08)
                 end
-                _runtime.LastPurchaseAttempt[fruitName] = now
-                any = true
+                if clicked then
+                    _runtime.LastPurchaseAttempt[fruitName] = now
+                    any = true
+                end
             end
         end
     end
@@ -735,8 +739,8 @@ function AutoBuy.Init(ctx)
                             if (now - _runtime.LastSweep) >= sweep then
                                 _runtime.LastSweep = now
 
-                                local reliableSilent, hadAttempt = trySilentBuy(targets)
-                                if (not reliableSilent) and (not hadAttempt) then
+                                local reliableSilent = trySilentBuy(targets)
+                                if not reliableSilent then
                                     tryGuiFallback(targets)
                                 end
                             end
