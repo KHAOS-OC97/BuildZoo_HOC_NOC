@@ -354,9 +354,7 @@ local function collectCandidateContainers(button)
         end
     end
 
-    local parent = button and button.Parent
-    add(parent)
-    add(parent and parent.Parent)
+    add(button and button.Parent)
 
     return containers
 end
@@ -771,6 +769,27 @@ local function tryGuiFallback(targets)
     return any
 end
 
+function AutoBuy.Pulse()
+    dismissRobuxModal()
+
+    local targets = collectTargets()
+    if next(targets) == nil then
+        return false
+    end
+
+    local guiOnly = (_cfg.AUTO_BUY_GUI_ONLY == true)
+    if guiOnly then
+        return tryGuiFallback(targets)
+    end
+
+    local okSilent = trySilentBuy(targets)
+    if okSilent then
+        return true
+    end
+
+    return tryGuiFallback(targets)
+end
+
 function AutoBuy.Init(ctx)
     _svc = ctx.Services
     _state = ctx.State
@@ -791,26 +810,16 @@ function AutoBuy.Init(ctx)
         while _G_Running do
             if _G_AutoBuy then
                 pcall(function()
-                    dismissRobuxModal()
-                    local targets = collectTargets()
-                    if next(targets) ~= nil then
-                        local now = os.clock()
-                        local sweep = _cfg.AUTO_BUY_SILENT_SWEEP or 15
-                        local guiOnly = (_cfg.AUTO_BUY_GUI_ONLY == true)
+                    local now = os.clock()
+                    local sweep = _cfg.AUTO_BUY_SILENT_SWEEP or 15
 
-                        if guiOnly then
+                    if (now - _runtime.LastSweep) >= sweep then
+                        _runtime.LastSweep = now
+                        AutoBuy.Pulse()
+                    elseif (_cfg.AUTO_BUY_FORCE_GUI_FALLBACK_AFTER_SILENT == true) then
+                        local targets = collectTargets()
+                        if next(targets) ~= nil then
                             tryGuiFallback(targets)
-                        else
-                            if (now - _runtime.LastSweep) >= sweep then
-                                _runtime.LastSweep = now
-
-                                local reliableSilent = trySilentBuy(targets)
-                                if not reliableSilent then
-                                    tryGuiFallback(targets)
-                                end
-                            elseif (_cfg.AUTO_BUY_FORCE_GUI_FALLBACK_AFTER_SILENT == true) then
-                                tryGuiFallback(targets)
-                            end
                         end
                     end
                 end)
