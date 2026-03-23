@@ -7,10 +7,30 @@
 
 local AntiAFK = {}
 local _svc
-local _idledConn
-local _watchdogRunning = false
+local _runtime
+
+local function ensureRuntime()
+    _G.__HOC_RUNTIME = _G.__HOC_RUNTIME or {}
+    _G.__HOC_RUNTIME.AntiAFK = _G.__HOC_RUNTIME.AntiAFK or {
+        IdledConn = nil,
+        HeartbeatConn = nil,
+        WatchdogRunning = false,
+        LastPulseAt = 0,
+        LastToggleState = false,
+    }
+    _runtime = _G.__HOC_RUNTIME.AntiAFK
+end
+
+local function now()
+    local ok, value = pcall(function()
+        return os.clock()
+    end)
+    return ok and value or 0
+end
 
 local function pulseVirtualUser()
+    if not _svc.VirtualUser then return end
+
     pcall(function()
         _svc.VirtualUser:CaptureController()
     end)
@@ -63,6 +83,13 @@ local function pulseHumanoid()
     pcall(function()
         hum.Jump = true
     end)
+
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if root then
+        pcall(function()
+            root.CFrame = root.CFrame * CFrame.new(0, 0, -0.05)
+        end)
+    end
 end
 
 local function doAntiIdlePulse()
@@ -72,21 +99,62 @@ local function doAntiIdlePulse()
     pulseVirtualUser()
     pulseVirtualInputManager()
     pulseHumanoid()
+
+    if _runtime then
+        _runtime.LastPulseAt = now()
+    end
+end
+
+local function bindCurrentCharacter()
+    if not _svc or not _svc.LocalPlayer then return end
+
+    local character = _svc.LocalPlayer.Character
+    if character then
+        task.spawn(function()
+            pcall(function()
+                character:WaitForChild("Humanoid", 5)
+            end)
+            if _G_AntiAFK then
+                doAntiIdlePulse()
+            end
+        end)
+    end
+end
+
+local function ensureHeartbeat()
+    if not _svc.RunService then return end
+
+    if _runtime.HeartbeatConn then
+        pcall(function() _runtime.HeartbeatConn:Disconnect() end)
+    end
+
+    _runtime.HeartbeatConn = _svc.RunService.Heartbeat:Connect(function()
+        if not _G_Running or not _G_AntiAFK then return end
+
+        local current = now()
+        if current - (_runtime.LastPulseAt or 0) >= 15 then
+            doAntiIdlePulse()
+        end
+    end)
 end
 
 function AntiAFK.Init(ctx)
     _svc = ctx.Services
+    ensureRuntime()
 
-    if _idledConn then
-        pcall(function() _idledConn:Disconnect() end)
+    if _runtime.IdledConn then
+        pcall(function() _runtime.IdledConn:Disconnect() end)
     end
 
-    _idledConn = _svc.LocalPlayer.Idled:Connect(function()
+    _runtime.IdledConn = _svc.LocalPlayer.Idled:Connect(function()
         doAntiIdlePulse()
     end)
 
-    if not _watchdogRunning then
-        _watchdogRunning = true
+    ensureHeartbeat()
+    bindCurrentCharacter()
+
+    if not _runtime.WatchdogRunning then
+        _runtime.WatchdogRunning = true
         task.spawn(function()
             while _G_Running do
                 if _G_AntiAFK then
@@ -94,8 +162,23 @@ function AntiAFK.Init(ctx)
                 end
                 task.wait(20)
             end
-            _watchdogRunning = false
+
+            if _runtime and _runtime.HeartbeatConn then
+                pcall(function() _runtime.HeartbeatConn:Disconnect() end)
+                _runtime.HeartbeatConn = nil
+            end
+
+            if _runtime and _runtime.IdledConn then
+                pcall(function() _runtime.IdledConn:Disconnect() end)
+                _runtime.IdledConn = nil
+            end
+
+            _runtime.WatchdogRunning = false
         end)
+    end
+
+    if _G_AntiAFK then
+        doAntiIdlePulse()
     end
 end
 

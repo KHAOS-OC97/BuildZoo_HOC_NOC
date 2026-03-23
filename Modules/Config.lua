@@ -47,6 +47,16 @@ return {
         "afe26d3344da424bb3f5efa6e56df287",
         "0364afa6d90d412b9d5089a1b81d5860",
     },
+    BIG_PET_LOCATIONS = {
+        {
+            name = "BIG PET 01",
+            position = Vector3.new(209.342, 18.856, 44.998),
+        },
+        {
+            name = "BIG PET 02",
+            position = Vector3.new(107.829, 18.856, 42.174),
+        },
+    },
 
     -- Usuários aliados para teleporte
     TARGET_USERS = {"KChaos97", "CKhaos79"},

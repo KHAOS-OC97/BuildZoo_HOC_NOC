@@ -111,6 +111,53 @@ local function getPetPivotCFrame(pet)
     return nil
 end
 
+local function getTargetPosition(target)
+    if typeof(target) == "Instance" then
+        local petCf = getPetPivotCFrame(target)
+        return petCf and petCf.Position or nil
+    end
+
+    if type(target) ~= "table" then
+        return nil
+    end
+
+    if target.pet then
+        local petCf = getPetPivotCFrame(target.pet)
+        if petCf then
+            return petCf.Position
+        end
+    end
+
+    if typeof(target.position) == "Vector3" then
+        return target.position
+    end
+
+    return nil
+end
+
+local function collectInteractionTargets()
+    local targets = {}
+
+    for _, pet in ipairs(collectPetTargets()) do
+        table.insert(targets, {
+            key = tostring(pet:GetFullName()),
+            pet = pet,
+        })
+    end
+
+    for index, info in ipairs(_cfg.BIG_PET_LOCATIONS or {}) do
+        if typeof(info.position) == "Vector3" then
+            table.insert(targets, {
+                key = "coord:" .. tostring(info.name or index),
+                name = info.name or ("BIG PET " .. tostring(index)),
+                position = info.position,
+            })
+        end
+    end
+
+    return targets
+end
+
 local function collectComparableNames(name)
     local values = {}
     local seen = {}
@@ -534,18 +581,61 @@ local function findPromptNearPet(pet)
     return best
 end
 
-local function moveNearPet(pet)
+local function findPromptNearPosition(position)
+    if typeof(position) ~= "Vector3" then return nil end
+
+    local best = nil
+    local bestDist = math.huge
+
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") then
+            local parent = obj.Parent
+            local part = parent and parent:IsA("BasePart") and parent or nil
+            if part then
+                local d = (part.Position - position).Magnitude
+                if d < bestDist and d <= (_cfg.BIG_PET_FEED_PROMPT_RADIUS or 20) then
+                    local sig = normalize(obj.Name .. " " .. tostring(obj.ActionText) .. " " .. tostring(obj.ObjectText))
+                    if sig:find("feed", 1, true)
+                        or sig:find("food", 1, true)
+                        or sig:find("pet", 1, true)
+                        or sig:find("eat", 1, true)
+                    then
+                        best = obj
+                        bestDist = d
+                    end
+                end
+            end
+        end
+    end
+
+    return best
+end
+
+local function findPromptForTarget(target)
+    if type(target) == "table" and target.pet then
+        return findPetPrompt(target.pet) or findPromptNearPosition(getTargetPosition(target))
+    end
+
+    if typeof(target) == "Instance" then
+        return findPetPrompt(target) or findPromptNearPosition(getTargetPosition(target))
+    end
+
+    return findPromptNearPosition(getTargetPosition(target))
+end
+
+local function moveNearPet(target)
     local lp = _svc.LocalPlayer
     local char = lp and lp.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local petCf = getPetPivotCFrame(pet)
-    if not hrp or not petCf then return false end
+    local position = getTargetPosition(target)
+    if not hrp or not position then return false end
 
-    local offset = CFrame.new(0, 0, -(_cfg.BIG_PET_FEED_INTERACT_DISTANCE or 4))
-    local target = petCf * offset
+    local distance = _cfg.BIG_PET_FEED_INTERACT_DISTANCE or 4
+    local destination = position + Vector3.new(0, 0, -distance)
+    local targetCf = CFrame.new(destination, position)
 
     local ok = pcall(function()
-        hrp.CFrame = target
+        hrp.CFrame = targetCf
     end)
 
     if ok then
@@ -614,13 +704,13 @@ local function tryPromptFallback(foods)
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return false end
 
-    local pets = collectPetTargets()
-    if #pets == 0 then return false end
+    local targets = collectInteractionTargets()
+    if #targets == 0 then return false end
 
     local ok = false
     pcall(function()
-        for _, pet in ipairs(pets) do
-            moveNearPet(pet)
+        for _, target in ipairs(targets) do
+            moveNearPet(target)
 
             local food = foods and foods[1]
             if food then
@@ -629,7 +719,7 @@ local function tryPromptFallback(foods)
             end
 
             for _ = 1, (_cfg.BIG_PET_FEED_PROMPT_RETRY or 3) do
-                local prompt = findPetPrompt(pet) or findPromptNearPet(pet)
+                local prompt = findPromptForTarget(target)
                 if prompt then
                     if firePromptWithHold(prompt) then
                         ok = true
@@ -657,17 +747,17 @@ local function tryToolActivateFallback()
 
     local selected = collectSelectedTargets()
     local foods = collectInventoryFood(selected)
-    local pets = collectPetTargets()
+    local targets = collectInteractionTargets()
     if #foods == 0 then return false end
-    if #pets == 0 then return false end
+    if #targets == 0 then return false end
 
     local ok = false
     local spacing = _cfg.BIG_PET_FEED_REQUEST_SPACING or 0.08
     local canUsePrompt = (type(fireproximityprompt) == "function")
 
     pcall(function()
-        for _, pet in ipairs(pets) do
-            moveNearPet(pet)
+        for _, target in ipairs(targets) do
+            moveNearPet(target)
 
             for _, tool in ipairs(foods) do
                 humanoid:EquipTool(tool)
@@ -678,7 +768,7 @@ local function tryToolActivateFallback()
                 task.wait(spacing)
 
                 if canUsePrompt then
-                    local prompt = findPetPrompt(pet) or findPromptNearPet(pet)
+                    local prompt = findPromptForTarget(target)
                     if prompt then
                         if firePromptWithHold(prompt) then
                             ok = true

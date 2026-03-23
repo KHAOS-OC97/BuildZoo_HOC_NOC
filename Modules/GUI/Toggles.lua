@@ -8,7 +8,7 @@
 
 local Toggles = {}
 
-local function createToggle(parent, label, pos, cfg, svc, callback)
+local function createToggle(parent, label, pos, cfg, svc, initialState, callback)
     local Container                    = Instance.new("Frame", parent)
     Container.Size                     = UDim2.new(0.9, 0, 0, 25)
     Container.Position                 = pos
@@ -36,7 +36,14 @@ local function createToggle(parent, label, pos, cfg, svc, callback)
     Knob.BackgroundColor3              = cfg.Colors.White
     Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0)
 
-    local state = false
+    local function applyState(state)
+        Knob.Position = state and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)
+        SwitchBG.BackgroundColor3 = state and Color3.fromRGB(0, 150, 80) or cfg.Colors.Red
+    end
+
+    local state = initialState and true or false
+    applyState(state)
+
     SwitchBG.MouseButton1Click:Connect(function()
         state = not state
         local targetPos   = state and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)
@@ -53,16 +60,23 @@ function Toggles.Build(Main, ctx)
 
     -- Posições absolutas em pixels (Y) para evitar sobreposição com botões
     local defs = {
-        {"MAGNET STEALTH",      UDim2.new(0.05, 0, 0,  35), function(v) _G_AutoCollect = v end},
-        {"AUTO-BUILD REMOTE",   UDim2.new(0.05, 0, 0,  63), function(v) _G_AutoBuild   = v end},
-        {"AUTO-GIFTS (GUI)",    UDim2.new(0.05, 0, 0,  91), function(v) _G_AutoGifts   = v end},
-        {"JUMP INFINITY",       UDim2.new(0.05, 0, 0, 119), function(v) _G_InfJump     = v end},
-        {"MAX RANGE ESP (RGB)", UDim2.new(0.05, 0, 0, 147), function(v) _G_ESP         = v end},
-        {"ANTI-AFK MARINES",   UDim2.new(0.05, 0, 0, 175), function(v) _G_AntiAFK     = v end},
+        {"MAGNET STEALTH",      UDim2.new(0.05, 0, 0,  35), _G_AutoCollect, function(v) _G_AutoCollect = v end},
+        {"AUTO-BUILD REMOTE",   UDim2.new(0.05, 0, 0,  63), _G_AutoBuild,   function(v) _G_AutoBuild   = v end},
+        {"AUTO-GIFTS (GUI)",    UDim2.new(0.05, 0, 0,  91), _G_AutoGifts,   function(v) _G_AutoGifts   = v end},
+        {"JUMP INFINITY",       UDim2.new(0.05, 0, 0, 119), _G_InfJump,     function(v) _G_InfJump     = v end},
+        {"MAX RANGE ESP (RGB)", UDim2.new(0.05, 0, 0, 147), _G_ESP,         function(v) _G_ESP         = v end},
+        {"ANTI-AFK MARINES",    UDim2.new(0.05, 0, 0, 175), _G_AntiAFK,     function(v)
+            _G_AntiAFK = v
+            if v and ctx.AntiAFK and type(ctx.AntiAFK.Ping) == "function" then
+                task.spawn(function()
+                    pcall(function() ctx.AntiAFK.Ping() end)
+                end)
+            end
+        end},
     }
 
     for _, def in ipairs(defs) do
-        createToggle(Main, def[1], def[2], cfg, svc, def[3])
+        createToggle(Main, def[1], def[2], cfg, svc, def[3], def[4])
     end
 end
 
