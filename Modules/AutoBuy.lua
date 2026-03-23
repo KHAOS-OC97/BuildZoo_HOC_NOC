@@ -78,6 +78,53 @@ local function matchesFruitShopKeyword(name)
     return false
 end
 
+local function scoreRemoteCandidate(remote)
+    local score = 0
+    local sig = normalize(remote:GetFullName() .. " " .. remote.Name)
+
+    if remote:IsA("RemoteFunction") then score = score + 30 end
+    if sig:find("buy", 1, true) then score = score + 16 end
+    if sig:find("purchase", 1, true) then score = score + 14 end
+    if sig:find("fruit", 1, true) then score = score + 10 end
+    if sig:find("petfood", 1, true) then score = score + 10 end
+    if sig:find("food", 1, true) then score = score + 6 end
+    if sig:find("shop", 1, true) then score = score + 5 end
+    if sig:find("merchant", 1, true) then score = score + 3 end
+    if sig:find("stock", 1, true) then score = score - 4 end
+    if sig:find("restock", 1, true) then score = score - 6 end
+
+    return score
+end
+
+local function collectTargetBatch(targets)
+    local names = {}
+    for fruitName in pairs(targets) do
+        table.insert(names, fruitName)
+    end
+
+    table.sort(names)
+
+    local batchSize = math.max(1, tonumber(_cfg.AUTO_BUY_MAX_FRUITS_PER_PULSE) or #names)
+    if #names <= batchSize then
+        _runtime.NextTargetCursor = 1
+        return names
+    end
+
+    local out = {}
+    local cursor = tonumber(_runtime.NextTargetCursor) or 1
+    if cursor < 1 or cursor > #names then
+        cursor = 1
+    end
+
+    for offset = 0, batchSize - 1 do
+        local idx = ((cursor + offset - 1) % #names) + 1
+        table.insert(out, names[idx])
+    end
+
+    _runtime.NextTargetCursor = ((cursor + batchSize - 1) % #names) + 1
+    return out
+end
+
 local function collectFruitShopRoots(playerGui)
     local roots = {}
     local seen = {}
@@ -582,6 +629,15 @@ local function refreshRemoteCandidates()
         end
     end
 
+    table.sort(candidates, function(a, b)
+        return scoreRemoteCandidate(a) > scoreRemoteCandidate(b)
+    end)
+
+    local maxCandidates = math.max(1, tonumber(_cfg.AUTO_BUY_MAX_REMOTE_CANDIDATES) or #candidates)
+    while #candidates > maxCandidates do
+        table.remove(candidates)
+    end
+
     _remoteCandidates = candidates
     _lastRemoteScan = now
     return _remoteCandidates
@@ -608,6 +664,8 @@ end
 local function buildArgVariants(fruitName, amount)
     local names = {}
     local seen = {}
+    local maxVariants = math.max(1, tonumber(_cfg.AUTO_BUY_MAX_ARG_VARIANTS) or 24)
+
     local function addName(n)
         local s = tostring(n or "")
         if s ~= "" and not seen[s] then
@@ -630,19 +688,35 @@ local function buildArgVariants(fruitName, amount)
     end
 
     local variants = {}
+    local variantSeen = {}
     local function addArgs(...)
-        table.insert(variants, {...})
+        if #variants >= maxVariants then return end
+
+        local args = {...}
+        local keyParts = {}
+        for i = 1, #args do
+            keyParts[i] = tostring(args[i])
+        end
+        local key = table.concat(keyParts, "|")
+        if variantSeen[key] then return end
+
+        variantSeen[key] = true
+        table.insert(variants, args)
     end
 
     for _, n in ipairs(names) do
         addArgs(n)
         addArgs(n, amount)
-        addArgs("Buy", n)
         addArgs("Buy", n, amount)
-        addArgs("Purchase", n)
+        addArgs("Buy", n)
         addArgs("Purchase", n, amount)
+        addArgs("Purchase", n)
         addArgs("Fruit", n)
         addArgs("Fruit", n, amount)
+
+        if #variants >= maxVariants then
+            break
+        end
     end
 
     return variants
@@ -658,34 +732,77 @@ local function trySilentBuy(targets)
     local anyAttempt = false
     local anyReliableSuccess = false
     local fruitCooldown = _cfg.AUTO_BUY_FRUIT_COOLDOWN or 20
+    local probeCooldown = _cfg.AUTO_BUY_PROBE_COOLDOWN or 6
     local amount = math.max(1, tonumber(_G_BuyAmount) or 1)
+    local probeBudget = math.max(1, tonumber(_cfg.AUTO_BUY_MAX_PROBES_PER_FRUIT) or 6)
+    local yieldEvery = math.max(1, tonumber(_cfg.AUTO_BUY_INVOKE_YIELD_EVERY) or 8)
+    local targetBatch = collectTargetBatch(targets)
 
-    for fruitName in pairs(targets) do
-        local last = _runtime.LastPurchaseAttempt[fruitName] or 0
-        if (now - last) >= fruitCooldown then
+    for _, fruitName in ipairs(targetBatch) do
+        local lastSuccess = _runtime.LastPurchaseAttempt[fruitName] or 0
+        local lastProbe = _runtime.LastSilentProbe[fruitName] or 0
+        local waitWindow = ((now - lastSuccess) < fruitCooldown) and fruitCooldown or probeCooldown
+        local lastActivity = math.max(lastSuccess, lastProbe)
+
+        if (now - lastActivity) >= waitWindow then
             local variants = buildArgVariants(fruitName, amount)
-            local sent = false
+            local totalCombos = #remotes * #variants
 
-            for _, remote in ipairs(remotes) do
-                for _, args in ipairs(variants) do
+            if totalCombos > 0 then
+                local probeIndex = tonumber(_runtime.ProbeIndexByFruit[fruitName]) or 1
+                if probeIndex < 1 or probeIndex > totalCombos then
+                    probeIndex = 1
+                end
+
+                local sent = false
+                local fruitHadAttempt = false
+                local fruitProbes = math.min(probeBudget, totalCombos)
+
+                for _ = 1, fruitProbes do
+                    local zeroIdx = probeIndex - 1
+                    local remoteIdx = math.floor(zeroIdx / #variants) + 1
+                    local variantIdx = (zeroIdx % #variants) + 1
+                    local remote = remotes[remoteIdx]
+                    local args = variants[variantIdx]
+
                     local ok, kind, result = invokeRemote(remote, args)
                     dismissRobuxModal()
+
+                    probeIndex = probeIndex + 1
+                    if probeIndex > totalCombos then
+                        probeIndex = 1
+                    end
+
                     if ok then
                         anyAttempt = true
+                        fruitHadAttempt = true
 
                         if kind == "function" and result ~= false and result ~= nil then
                             anyReliableSuccess = true
                             sent = true
+                            _runtime.PreferredRemoteByFruit[fruitName] = remote:GetFullName()
+                            break
+                        end
+
+                        if kind == "event" then
                             break
                         end
                     end
-                end
-                if sent then break end
-            end
 
-            if sent then
-                _runtime.LastPurchaseAttempt[fruitName] = now
-                task.wait(_cfg.AUTO_BUY_REQUEST_SPACING or 0.08)
+                    if (_ % yieldEvery) == 0 then
+                        task.wait()
+                    end
+                end
+
+                _runtime.ProbeIndexByFruit[fruitName] = probeIndex
+
+                if sent then
+                    _runtime.LastPurchaseAttempt[fruitName] = now
+                    _runtime.LastSilentProbe[fruitName] = now
+                    task.wait(_cfg.AUTO_BUY_REQUEST_SPACING or 0.08)
+                elseif fruitHadAttempt then
+                    _runtime.LastSilentProbe[fruitName] = now
+                end
             end
         end
     end
@@ -774,6 +891,10 @@ function AutoBuy.Init(ctx)
         LoopStarted = false,
         LastSweep = 0,
         LastPurchaseAttempt = {},
+        LastSilentProbe = {},
+        ProbeIndexByFruit = {},
+        PreferredRemoteByFruit = {},
+        NextTargetCursor = 1,
     }
     _runtime = _G.__HOC_RUNTIME.AutoBuy
 
