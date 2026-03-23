@@ -9,6 +9,7 @@ local BigPetFeed = {}
 
 local _svc, _state, _cfg
 local _runtime
+local findCanonicalByName
 
 local _remoteCandidates = {}
 local _lastRemoteScan = 0
@@ -29,7 +30,6 @@ end
 
 local function collectPetTargets()
     local petsFolder = workspace:FindFirstChild("Pets")
-    if not petsFolder then return {} end
 
     local targets = {}
     local seen = {}
@@ -41,20 +41,45 @@ local function collectPetTargets()
         end
     end
 
-    for _, id in ipairs(_cfg.BIG_PET_IDS or {}) do
-        pushIfAny(petsFolder:FindFirstChild(id))
-        pushIfAny(petsFolder:FindFirstChild(id, true))
+    local function looksLikeBigPet(pet)
+        if not pet or not pet:IsA("Model") then
+            return false
+        end
+
+        local sig = normalize(pet.Name .. " " .. pet:GetFullName())
+        return sig:find("bigpet", 1, true)
+            or sig:find("hugepet", 1, true)
+            or (sig:find("big", 1, true) and sig:find("pet", 1, true))
+            or (sig:find("huge", 1, true) and sig:find("pet", 1, true))
+    end
+
+    local function collectFromRoot(root)
+        if not root then return end
+
+        for _, id in ipairs(_cfg.BIG_PET_IDS or {}) do
+            pushIfAny(root:FindFirstChild(id, true))
+        end
+
+        for _, obj in ipairs(root:GetDescendants()) do
+            if looksLikeBigPet(obj) then
+                pushIfAny(obj)
+            end
+        end
+    end
+
+    if petsFolder then
+        for _, id in ipairs(_cfg.BIG_PET_IDS or {}) do
+            pushIfAny(petsFolder:FindFirstChild(id))
+            pushIfAny(petsFolder:FindFirstChild(id, true))
+        end
     end
 
     if #targets == 0 then
-        for _, obj in ipairs(petsFolder:GetDescendants()) do
-            if obj:IsA("Model") then
-                local sig = normalize(obj.Name)
-                if sig:find("big", 1, true) and sig:find("pet", 1, true) then
-                    pushIfAny(obj)
-                end
-            end
-        end
+        collectFromRoot(petsFolder)
+    end
+
+    if #targets == 0 then
+        collectFromRoot(workspace)
     end
 
     return targets
@@ -86,16 +111,60 @@ local function getPetPivotCFrame(pet)
     return nil
 end
 
+local function collectComparableNames(name)
+    local values = {}
+    local seen = {}
+
+    local function addValue(value)
+        local text = tostring(value or "")
+        if text == "" then return end
+
+        local candidates = {
+            text,
+            text:gsub("%s+", ""),
+            text:gsub("%s+", "_"),
+            text:gsub("%s+", "-"),
+            text:lower(),
+            text:gsub("%s+", ""):lower(),
+        }
+
+        for _, candidate in ipairs(candidates) do
+            if candidate ~= "" and not seen[candidate] then
+                seen[candidate] = true
+                table.insert(values, candidate)
+            end
+        end
+    end
+
+    addValue(name)
+
+    local info = findCanonicalByName and findCanonicalByName(name)
+    if info then
+        addValue(info.path)
+        addValue(info.resId)
+        for _, alias in ipairs(info.aliases or {}) do
+            addValue(alias)
+        end
+    end
+
+    return values
+end
+
 local function toolMatchesSelection(toolName, selected)
     if next(selected) == nil then
         return true
     end
 
-    local toolNorm = normalize(toolName)
+    local toolNames = collectComparableNames(toolName)
     for fruitName in pairs(selected) do
-        local fruitNorm = normalize(fruitName)
-        if toolNorm:find(fruitNorm, 1, true) or fruitNorm:find(toolNorm, 1, true) then
-            return true
+        local fruitNames = collectComparableNames(fruitName)
+
+        for _, toolNorm in ipairs(toolNames) do
+            for _, fruitNorm in ipairs(fruitNames) do
+                if toolNorm:find(fruitNorm, 1, true) or fruitNorm:find(toolNorm, 1, true) then
+                    return true
+                end
+            end
         end
     end
 
@@ -127,7 +196,7 @@ local function collectInventoryFood(selected)
     return list
 end
 
-local function findCanonicalByName(name)
+findCanonicalByName = function(name)
     local target = normalize(name)
     local canonical = _cfg and _cfg.FRUIT_CANONICAL or nil
     if not canonical then return nil end
@@ -256,6 +325,24 @@ local function buildArgVariants(pet, tool, itemNameOverride)
         if s ~= "" and not seen[s] then
             seen[s] = true
             table.insert(itemNames, s)
+
+            local compact = s:gsub("%s+", "")
+            if compact ~= "" and not seen[compact] then
+                seen[compact] = true
+                table.insert(itemNames, compact)
+            end
+
+            local underscored = s:gsub("%s+", "_")
+            if underscored ~= "" and not seen[underscored] then
+                seen[underscored] = true
+                table.insert(itemNames, underscored)
+            end
+
+            local dashed = s:gsub("%s+", "-")
+            if dashed ~= "" and not seen[dashed] then
+                seen[dashed] = true
+                table.insert(itemNames, dashed)
+            end
         end
     end
 
@@ -526,17 +613,35 @@ local function tryToolActivateFallback()
 
     local selected = collectSelectedTargets()
     local foods = collectInventoryFood(selected)
+    local pets = collectPetTargets()
     if #foods == 0 then return false end
+    if #pets == 0 then return false end
 
     local ok = false
+    local spacing = _cfg.BIG_PET_FEED_REQUEST_SPACING or 0.08
+    local canUsePrompt = (type(fireproximityprompt) == "function")
 
     pcall(function()
-        for _, tool in ipairs(foods) do
-            humanoid:EquipTool(tool)
-            task.wait(_cfg.BIG_PET_FEED_REQUEST_SPACING or 0.08)
-            tool:Activate()
-            ok = true
-            task.wait(_cfg.BIG_PET_FEED_REQUEST_SPACING or 0.08)
+        for _, pet in ipairs(pets) do
+            moveNearPet(pet)
+
+            for _, tool in ipairs(foods) do
+                humanoid:EquipTool(tool)
+                task.wait(spacing)
+
+                tool:Activate()
+                ok = true
+                task.wait(spacing)
+
+                if canUsePrompt then
+                    local prompt = findPetPrompt(pet) or findPromptNearPet(pet)
+                    if prompt then
+                        fireproximityprompt(prompt)
+                        ok = true
+                        task.wait(spacing)
+                    end
+                end
+            end
         end
     end)
 
