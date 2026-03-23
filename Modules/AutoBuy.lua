@@ -14,6 +14,8 @@ local _lastFullScan = 0
 local _remoteCandidates = {}
 local _lastRemoteScan = 0
 local isRobuxButton
+local buttonIsSafeCoinTarget
+local dismissRobuxModal
 
 local function normalize(text)
     return tostring(text or ""):lower():gsub("%s+", "")
@@ -252,7 +254,7 @@ local function isRobuxModalText(text)
         or sig:find("termsofuse", 1, true)
 end
 
-local function dismissRobuxModal()
+dismissRobuxModal = function()
     local pg = _svc.LocalPlayer and _svc.LocalPlayer:FindFirstChild("PlayerGui")
     if not pg then return false end
 
@@ -351,7 +353,7 @@ local function buttonHasLocalNoStock(button)
     return false
 end
 
-local function buttonIsSafeCoinTarget(button)
+buttonIsSafeCoinTarget = function(button)
     if not button or isRobuxButton(button) then
         return false
     end
