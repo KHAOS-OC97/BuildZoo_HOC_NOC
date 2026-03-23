@@ -121,6 +121,7 @@ end
 
 local function activateButton(button)
     if not button then return false end
+    if not isElementVisible(button) then return false end
 
     -- Modo estrito: nunca interage com botao que nao seja BuyButton (coin).
     if (_cfg and _cfg.AUTO_BUY_STRICT_COIN_ONLY == true) then
@@ -138,6 +139,10 @@ local function activateButton(button)
         return false
     end
 
+    if not buttonIsSafeCoinTarget(button) then
+        return false
+    end
+
     local success = false
 
     if typeof(firesignal) == "function" then
@@ -152,6 +157,28 @@ local function activateButton(button)
         button:Activate()
         success = true
     end)
+
+    if success then
+        dismissRobuxModal()
+        return true
+    end
+
+    if _svc.VirtualInputManager then
+        local absPos = button.AbsolutePosition
+        local absSize = button.AbsoluteSize
+        if absSize.X > 0 and absSize.Y > 0 then
+            local px = math.floor(absPos.X + absSize.X / 2)
+            local py = math.floor(absPos.Y + absSize.Y / 2)
+
+            pcall(function()
+                _svc.VirtualInputManager:SendMouseButtonEvent(px, py, 0, true, game, 0)
+                _svc.VirtualInputManager:SendMouseButtonEvent(px, py, 0, false, game, 0)
+                success = true
+            end)
+        end
+    end
+
+    dismissRobuxModal()
 
     return success
 end
