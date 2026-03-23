@@ -796,14 +796,16 @@ function AutoBuy.Init(ctx)
                         if guiOnly then
                             tryGuiFallback(targets)
                         else
+                            local allowForcedGuiFallback = (_cfg.AUTO_BUY_FORCE_GUI_FALLBACK_AFTER_SILENT == true)
+
                             if (now - _runtime.LastSweep) >= sweep then
                                 _runtime.LastSweep = now
 
-                                local reliableSilent = trySilentBuy(targets)
-                                if not reliableSilent then
+                                local reliableSilent, anySilentAttempt = trySilentBuy(targets)
+                                if not reliableSilent and ((not anySilentAttempt) or allowForcedGuiFallback) then
                                     tryGuiFallback(targets)
                                 end
-                            else
+                            elseif allowForcedGuiFallback then
                                 tryGuiFallback(targets)
                             end
                         end
