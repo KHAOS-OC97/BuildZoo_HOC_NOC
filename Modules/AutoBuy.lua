@@ -145,24 +145,10 @@ local function activateButton(button)
         return false
     end
 
-    local success = false
-
     if typeof(firesignal) == "function" then
         pcall(function()
             firesignal(button.MouseButton1Click)
-            success = true
         end)
-        if success then return true end
-    end
-
-    pcall(function()
-        button:Activate()
-        success = true
-    end)
-
-    if success then
-        dismissRobuxModal()
-        return true
     end
 
     if _svc.VirtualInputManager then
@@ -172,13 +158,25 @@ local function activateButton(button)
             local px = math.floor(absPos.X + absSize.X / 2)
             local py = math.floor(absPos.Y + absSize.Y / 2)
 
+            local clicked = false
             pcall(function()
                 _svc.VirtualInputManager:SendMouseButtonEvent(px, py, 0, true, game, 0)
                 _svc.VirtualInputManager:SendMouseButtonEvent(px, py, 0, false, game, 0)
-                success = true
+                clicked = true
             end)
+
+            dismissRobuxModal()
+            if clicked then
+                return true
+            end
         end
     end
+
+    local success = false
+    pcall(function()
+        button:Activate()
+        success = true
+    end)
 
     dismissRobuxModal()
 
