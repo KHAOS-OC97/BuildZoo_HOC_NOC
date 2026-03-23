@@ -174,34 +174,14 @@ local function activateButton(button)
         return false
     end
 
+    local success = false
     if typeof(firesignal) == "function" then
         pcall(function()
             firesignal(button.MouseButton1Click)
+            success = true
         end)
     end
 
-    if _svc.VirtualInputManager then
-        local absPos = button.AbsolutePosition
-        local absSize = button.AbsoluteSize
-        if absSize.X > 0 and absSize.Y > 0 then
-            local px = math.floor(absPos.X + absSize.X / 2)
-            local py = math.floor(absPos.Y + absSize.Y / 2)
-
-            local clicked = false
-            pcall(function()
-                _svc.VirtualInputManager:SendMouseButtonEvent(px, py, 0, true, game, 0)
-                _svc.VirtualInputManager:SendMouseButtonEvent(px, py, 0, false, game, 0)
-                clicked = true
-            end)
-
-            dismissRobuxModal()
-            if clicked then
-                return true
-            end
-        end
-    end
-
-    local success = false
     pcall(function()
         button:Activate()
         success = true
@@ -343,6 +323,26 @@ local function cardLooksOutOfStock(root)
     return false
 end
 
+local function containerHasRobuxSignals(root)
+    if not root then return false end
+
+    for _, obj in ipairs(root:GetDescendants()) do
+        local nameSig = normalize(obj.Name)
+        if isRobuxLike(nameSig) then
+            return true
+        end
+
+        if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Text and obj.Text ~= "" then
+            local textSig = normalize(obj.Text)
+            if isRobuxLike(textSig) or isRobuxModalText(textSig) then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
 local function collectCandidateContainers(button)
     local containers = {}
     local seen = {}
@@ -354,7 +354,9 @@ local function collectCandidateContainers(button)
         end
     end
 
-    add(button and button.Parent)
+    local parent = button and button.Parent
+    add(parent)
+    add(parent and parent.Parent)
 
     return containers
 end
@@ -399,6 +401,9 @@ buttonIsSafeCoinTarget = function(button)
 
     for _, container in ipairs(collectCandidateContainers(button)) do
         if container and cardLooksOutOfStock(container) then
+            return false
+        end
+        if container and containerHasRobuxSignals(container) then
             return false
         end
     end
@@ -796,16 +801,14 @@ function AutoBuy.Init(ctx)
                         if guiOnly then
                             tryGuiFallback(targets)
                         else
-                            local allowForcedGuiFallback = (_cfg.AUTO_BUY_FORCE_GUI_FALLBACK_AFTER_SILENT == true)
-
                             if (now - _runtime.LastSweep) >= sweep then
                                 _runtime.LastSweep = now
 
-                                local reliableSilent, anySilentAttempt = trySilentBuy(targets)
-                                if not reliableSilent and ((not anySilentAttempt) or allowForcedGuiFallback) then
+                                local reliableSilent = trySilentBuy(targets)
+                                if not reliableSilent then
                                     tryGuiFallback(targets)
                                 end
-                            elseif allowForcedGuiFallback then
+                            elseif (_cfg.AUTO_BUY_FORCE_GUI_FALLBACK_AFTER_SILENT == true) then
                                 tryGuiFallback(targets)
                             end
                         end
