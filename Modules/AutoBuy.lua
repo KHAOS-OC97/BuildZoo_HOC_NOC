@@ -552,31 +552,6 @@ local function refreshShop(playerGui, selected)
     return found
 end
 
-local function collectSilentEligibleTargets(targets)
-    local pg = _svc.LocalPlayer and _svc.LocalPlayer:FindFirstChild("PlayerGui")
-    if not pg then
-        return targets
-    end
-
-    local shop = refreshShop(pg, targets)
-    if next(shop) == nil then
-        return targets
-    end
-
-    local eligible = {}
-    for fruitName, entry in pairs(shop) do
-        if targets[fruitName] and entry and entry.button and buttonIsSafeCoinTarget(entry.button) then
-            eligible[fruitName] = true
-        end
-    end
-
-    if next(eligible) == nil then
-        return targets
-    end
-
-    return eligible
-end
-
 local function refreshRemoteCandidates()
     local now = os.clock()
     local scanInterval = _cfg.AUTO_BUY_REMOTE_SCAN_INTERVAL or 30
@@ -674,7 +649,6 @@ local function buildArgVariants(fruitName, amount)
 end
 
 local function trySilentBuy(targets)
-    targets = collectSilentEligibleTargets(targets)
     if next(targets) == nil then return false, false end
 
     local remotes = refreshRemoteCandidates()
