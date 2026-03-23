@@ -26,9 +26,23 @@ local function getGuiText(obj)
     local ok, value = pcall(function()
         return obj.Text
     end)
-    if ok and type(value) == "string" then
+    if ok and type(value) == "string" and value ~= "" then
         return value
     end
+
+    if obj.GetDescendants then
+        for _, child in ipairs(obj:GetDescendants()) do
+            if child:IsA("TextLabel") or child:IsA("TextButton") then
+                local childOk, childValue = pcall(function()
+                    return child.Text
+                end)
+                if childOk and type(childValue) == "string" and childValue ~= "" then
+                    return childValue
+                end
+            end
+        end
+    end
+
     return ""
 end
 
@@ -372,7 +386,7 @@ buttonIsSafeCoinTarget = function(button)
     end
 
     local nameSig = normalize(button.Name)
-    local textSig = normalize(button.Text)
+    local textSig = normalize(getGuiText(button))
     if _cfg and _cfg.AUTO_BUY_STRICT_COIN_ONLY == true then
         if nameSig ~= "buybutton" and textSig ~= "buy" and textSig ~= "purchase" then
             return false
