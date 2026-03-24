@@ -32,6 +32,67 @@
         queue_on_teleport([[loadstring(game:HttpGet("SUA_URL_RAW"))()]])
 ]]
 
+-- ── Whitelist Security Check ──────────────────────────────────────────────────
+do
+    local ALLOWED_USERS = { ["KChaos97"] = true, ["CKhaos79"] = true }
+    local Players = game:GetService("Players")
+    local player  = Players.LocalPlayer
+    local name    = player and player.Name or ""
+
+    local function showAccessNotification(granted)
+        local sg = Instance.new("ScreenGui")
+        sg.Name = "HOC_NOC_Access"
+        sg.ResetOnSpawn = false
+        sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        pcall(function() sg.Parent = game:GetService("CoreGui") end)
+        if not sg.Parent then sg.Parent = player:WaitForChild("PlayerGui") end
+
+        local frame = Instance.new("Frame", sg)
+        frame.AnchorPoint = Vector2.new(0.5, 0)
+        frame.Position = UDim2.new(0.5, 0, 0.05, 0)
+        frame.Size = UDim2.new(0, 420, 0, 60)
+        frame.BackgroundColor3 = granted and Color3.fromRGB(30, 30, 30) or Color3.fromRGB(40, 10, 10)
+        frame.BackgroundTransparency = 0.15
+        frame.BorderSizePixel = 0
+        Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+        local stroke = Instance.new("UIStroke", frame)
+        stroke.Color = granted and Color3.fromRGB(0, 200, 80) or Color3.fromRGB(220, 40, 40)
+        stroke.Thickness = 2
+
+        local lbl = Instance.new("TextLabel", frame)
+        lbl.Size = UDim2.new(1, -20, 1, 0)
+        lbl.Position = UDim2.new(0, 10, 0, 0)
+        lbl.BackgroundTransparency = 1
+        lbl.Font = Enum.Font.GothamBold
+        lbl.TextSize = 18
+        lbl.TextColor3 = granted and Color3.fromRGB(0, 220, 90) or Color3.fromRGB(255, 60, 60)
+        lbl.Text = granted
+            and ("[HOC NOC] Access GRANTED — Welcome, " .. name)
+            or  ("[HOC NOC] Access DENIED — Unauthorized user: " .. name)
+        lbl.TextXAlignment = Enum.TextXAlignment.Center
+
+        task.delay(granted and 4 or 6, function()
+            pcall(function()
+                local tw = game:GetService("TweenService")
+                local ti = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+                tw:Create(frame, ti, {BackgroundTransparency = 1}):Play()
+                tw:Create(lbl,   ti, {TextTransparency = 1}):Play()
+                tw:Create(stroke, ti, {Transparency = 1}):Play()
+                task.wait(1.1)
+                sg:Destroy()
+            end)
+        end)
+    end
+
+    if not ALLOWED_USERS[name] then
+        showAccessNotification(false)
+        return
+    end
+
+    showAccessNotification(true)
+end
+
 -- ── Loader de módulos ─────────────────────────────────────────────────────────
 local BASE = "HOC_NOC_Zoo/"
 
