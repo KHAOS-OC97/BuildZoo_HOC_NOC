@@ -123,9 +123,17 @@ local function isGuiButton(obj)
     return obj and (obj:IsA("TextButton") or obj:IsA("ImageButton"))
 end
 
+local function isExplicitRobuxButtonName(name)
+    local sig = normalize(name)
+    return sig == "robuxbuybutton"
+        or sig:find("robuxbuybutton", 1, true)
+        or sig:find("robuxbuy", 1, true)
+end
+
 local function isRobuxLike(text)
     local s = normalize(text)
-    return s:find("robux", 1, true)
+    return isExplicitRobuxButtonName(s)
+        or s:find("robux", 1, true)
         or s:find("r$", 1, true)
         or s:find("gamepass", 1, true)
         or s:find("devproduct", 1, true)
@@ -139,6 +147,41 @@ local function collectTargets()
         end
     end
     return t
+end
+
+local function updateDebugText(lines)
+    local text = "AUTO BUY DEBUG"
+    if lines and #lines > 0 then
+        text = text .. "\n" .. table.concat(lines, "\n")
+    else
+        text = text .. "\nAguardando varredura..."
+    end
+
+    _state.AutoBuyDebugText = text
+
+    local label = _state.Stored and _state.Stored.AutoBuyDebugLabel
+    if label and label.Parent then
+        label.Text = text
+    end
+end
+
+local function buildSelectedDebugLines(selected, found)
+    local names = {}
+    for fruitName in pairs(selected) do
+        table.insert(names, fruitName)
+    end
+    table.sort(names)
+
+    local lines = {}
+    for _, fruitName in ipairs(names) do
+        if found and found[fruitName] and found[fruitName].button and found[fruitName].button.Parent then
+            table.insert(lines, "[OK] " .. fruitName .. " -> BuyButton encontrado")
+        else
+            table.insert(lines, "[NO] " .. fruitName .. " -> BuyButton nao encontrado")
+        end
+    end
+
+    return lines
 end
 
 local function matchesFruitShopKeyword(name)
@@ -322,7 +365,17 @@ function isRobuxButton(button)
 
     local nameSig = normalize(button.Name)
     local textSig = normalize(getGuiText(button))
-    if isRobuxLike(nameSig) or isRobuxLike(textSig) then
+    local fullNameSig = ""
+    pcall(function()
+        fullNameSig = normalize(button:GetFullName())
+    end)
+
+    if isExplicitRobuxButtonName(nameSig)
+        or isExplicitRobuxButtonName(fullNameSig)
+        or isRobuxLike(nameSig)
+        or isRobuxLike(textSig)
+        or isRobuxLike(fullNameSig)
+    then
         return true
     end
 
@@ -333,6 +386,10 @@ local function scoreBuyButton(button)
     local score = 0
     local nameSig = normalize(button.Name)
     local textSig = normalize(getGuiText(button))
+
+    if isExplicitRobuxButtonName(nameSig) then
+        return -1000
+    end
 
     if nameSig == "buybutton" then score = score + 30 end
     if nameSig:find("buybutton", 1, true) then score = score + 12 end
@@ -489,8 +546,33 @@ local function collectCandidateContainers(button)
     end
 
     add(button and button.Parent)
+    add(button and button.Parent and button.Parent.Parent)
+    add(button and button.Parent and button.Parent.Parent and button.Parent.Parent.Parent)
 
     return containers
+end
+
+local function isGuiContainer(obj)
+    return obj and (obj:IsA("Frame") or obj:IsA("CanvasGroup") or obj:IsA("ScrollingFrame"))
+end
+
+local function findFruitCardRootFromButton(button, fruitName, aliases)
+    local current = button and button.Parent
+    local steps = 0
+
+    while current and steps < 6 do
+        if isGuiContainer(current) and isElementVisible(current) then
+            local texts = collectLocalTexts(current)
+            if textSetHasAnyAlias(texts, aliases or {}) and textSetHasAnyPrice(texts, fruitName) then
+                return current, texts
+            end
+        end
+
+        current = current.Parent
+        steps = steps + 1
+    end
+
+    return nil, nil
 end
 
 local function isLeftPurchaseSlot(button)
@@ -580,6 +662,10 @@ local function findBuyButtonFast(parent)
             local childName = normalize(child.Name)
             local childText = normalize(getGuiText(child))
 
+            if isExplicitRobuxButtonName(childName) or isRobuxLike(childText) then
+                continue
+            end
+
             if childName == "buybutton" and buttonIsSafeCoinTarget(child) then
                 return child
             end
@@ -618,6 +704,32 @@ local function findBuyButtonFast(parent)
     return nil
 end
 
+local function findFruitCardEntries(root, selected, aliasesByFruit)
+    local found = {}
+
+    for _, obj in ipairs(root:GetDescendants()) do
+        if isGuiButton(obj)
+            and normalize(obj.Name) == "buybutton"
+            and isElementVisible(obj)
+            and buttonIsSafeCoinTarget(obj)
+        then
+            for fruitName in pairs(selected) do
+                if not found[fruitName] then
+                    local cardRoot = findFruitCardRootFromButton(obj, fruitName, aliasesByFruit[fruitName])
+                    if cardRoot and not cardLooksOutOfStock(cardRoot) then
+                        found[fruitName] = {
+                            label = cardRoot,
+                            button = obj,
+                        }
+                    end
+                end
+            end
+        end
+    end
+
+    return found
+end
+
 local function refreshShop(playerGui, selected)
     local now = os.clock()
     local scanInterval = _cfg.AUTO_BUY_GUI_SCAN_INTERVAL or 8.0
@@ -635,6 +747,7 @@ local function refreshShop(playerGui, selected)
             end
         end
         if stillValid then
+            updateDebugText(buildSelectedDebugLines(selected, _cachedShop))
             return _cachedShop
         end
     end
@@ -642,9 +755,7 @@ local function refreshShop(playerGui, selected)
     local found = {}
     local roots = collectFruitShopRoots(playerGui)
     if #roots == 0 then
-        _cachedShop = {}
-        _lastFullScan = now
-        return _cachedShop
+        roots = {playerGui}
     end
 
     -- Mapa de aliases por fruta para match rapido.
@@ -653,74 +764,25 @@ local function refreshShop(playerGui, selected)
         aliasesByFruit[fruitName] = collectFruitNamesForMatch(fruitName)
     end
 
-    -- Escaneia cards reais da loja: botao BuyButton + textos locais do mesmo container.
     for _, root in ipairs(roots) do
-        for _, obj in ipairs(root:GetDescendants()) do
-            if isGuiButton(obj) and normalize(obj.Name) == "buybutton" and buttonIsSafeCoinTarget(obj) then
-                local card = obj.Parent
-                local textPool = collectLocalTexts(card)
-                local scanRoot = card
-
-                -- fallback: alguns layouts colocam nome/preco um nivel acima
-                if #textPool == 0 and card and card.Parent then
-                    textPool = collectLocalTexts(card.Parent)
-                    scanRoot = card.Parent
-                end
-
-                if not cardLooksOutOfStock(scanRoot) and buttonIsSafeCoinTarget(obj) then
-                    for fruitName in pairs(selected) do
-                        if not found[fruitName]
-                            and textSetHasAnyAlias(textPool, aliasesByFruit[fruitName] or {})
-                            and textSetHasAnyPrice(textPool, fruitName)
-                        then
-                            found[fruitName] = {
-                                label = obj,
-                                button = obj,
-                            }
-                        end
-                    end
-                end
+        local entries = findFruitCardEntries(root, selected, aliasesByFruit)
+        for fruitName, entry in pairs(entries) do
+            if not found[fruitName] then
+                found[fruitName] = entry
             end
         end
     end
 
-    -- Fallback legado para layouts fora do padrao BuyButton.
     if next(found) == nil then
-        for _, root in ipairs(roots) do
-            for _, obj in ipairs(root:GetDescendants()) do
-                if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.Text ~= "" then
-                    local normText = normalize(obj.Text)
-                    for fruitName in pairs(selected) do
-                        local matched = false
-                        for _, alias in ipairs(aliasesByFruit[fruitName] or {}) do
-                            if normText:find(normalize(alias), 1, true) then
-                                matched = true
-                                break
-                            end
-                        end
-
-                        if matched then
-                            local btn = findBuyButtonFast(obj.Parent)
-                            if not btn and obj.Parent and obj.Parent.Parent then
-                                btn = findBuyButtonFast(obj.Parent.Parent)
-                            end
-                            local owner = btn and btn.Parent
-                            local ownerTexts = collectLocalTexts(owner)
-                            if btn
-                                and buttonIsSafeCoinTarget(btn)
-                                and textSetHasAnyPrice(ownerTexts, fruitName)
-                            then
-                                found[fruitName] = {label = obj, button = btn}
-                            end
-                        end
-                    end
-                end
-            end
-        end
+        _cachedShop = {}
+        _lastFullScan = now
+        updateDebugText(buildSelectedDebugLines(selected, _cachedShop))
+        return _cachedShop
     end
 
     _cachedShop = found
     _lastFullScan = now
+    updateDebugText(buildSelectedDebugLines(selected, _cachedShop))
     return found
 end
 
@@ -996,6 +1058,7 @@ function AutoBuy.Pulse()
 
     local targets = collectTargets()
     if next(targets) == nil then
+        updateDebugText({"Nenhuma fruta selecionada."})
         return false
     end
 

@@ -14,6 +14,7 @@ local FruitMenu = {}
 -- Botões de ação terminam em ~335px (207 + 32*4 = 335)
 local DROPDOWN_Y  = 367
 local AUTOBUY_Y   = 395
+local DEBUG_Y     = 423
 
 function FruitMenu.Build(Main, ctx)
     local cfg    = ctx.Config
@@ -84,6 +85,39 @@ function FruitMenu.Build(Main, ctx)
         else                          _G_BuyAmount = 1 end
         AmountSmallBtn.Text = "Amt: " .. tostring(_G_BuyAmount)
     end)
+
+    -- ── Debug AutoBuy ────────────────────────────────────────────────────────
+    local DebugFrame                   = Instance.new("Frame", Main)
+    DebugFrame.Size                    = UDim2.new(0.9, 0, 0, 86)
+    DebugFrame.Position                = UDim2.new(0.05, 0, 0, DEBUG_Y)
+    DebugFrame.BackgroundColor3        = cfg.Colors.DarkMid
+    DebugFrame.BackgroundTransparency  = 0.15
+    DebugFrame.BorderSizePixel         = 0
+    Instance.new("UICorner", DebugFrame).CornerRadius = UDim.new(0, 6)
+    stored.AutoBuyDebugFrame = DebugFrame
+
+    local DebugTitle                   = Instance.new("TextLabel", DebugFrame)
+    DebugTitle.Size                    = UDim2.new(1, -10, 0, 18)
+    DebugTitle.Position                = UDim2.new(0, 5, 0, 2)
+    DebugTitle.BackgroundTransparency  = 1
+    DebugTitle.Text                    = "AUTO BUY DEBUG"
+    DebugTitle.TextColor3              = cfg.Colors.White
+    DebugTitle.Font                    = Enum.Font.GothamBold
+    DebugTitle.TextSize                = 10
+    DebugTitle.TextXAlignment          = Enum.TextXAlignment.Left
+
+    local DebugLabel                   = Instance.new("TextLabel", DebugFrame)
+    DebugLabel.Size                    = UDim2.new(1, -10, 1, -22)
+    DebugLabel.Position                = UDim2.new(0, 5, 0, 20)
+    DebugLabel.BackgroundTransparency  = 1
+    DebugLabel.Text                    = state.AutoBuyDebugText or "AUTO BUY DEBUG\nAguardando varredura..."
+    DebugLabel.TextColor3              = cfg.Colors.LightGray
+    DebugLabel.Font                    = Enum.Font.Code
+    DebugLabel.TextSize                = 10
+    DebugLabel.TextWrapped             = true
+    DebugLabel.TextXAlignment          = Enum.TextXAlignment.Left
+    DebugLabel.TextYAlignment          = Enum.TextYAlignment.Top
+    stored.AutoBuyDebugLabel = DebugLabel
 
     -- ── Frame do menu (expande/colapsa com tween) ─────────────────────────────
     local Menu                  = Instance.new("Frame", Main)

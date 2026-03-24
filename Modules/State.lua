@@ -25,6 +25,9 @@ local State = {
     -- Cor RGB global — atualizada pelo loop de cor da GUI, consumida por todos os strokes
     GlobalColor = Color3.new(1, 1, 1),
 
+    -- Texto de debug do AutoBuy mostrado na GUI
+    AutoBuyDebugText = "AUTO BUY DEBUG\nAguardando varredura...",
+
     -- Mapa de seleção de frutas (populado pelo FruitMenu a partir de Config.FRUITS)
     SelectedFruits = {},
 
@@ -40,6 +43,8 @@ local State = {
         DropdownBtn    = nil,
         AutoBuyBtn     = nil,
         AmountSmallBtn = nil,
+        AutoBuyDebugFrame = nil,
+        AutoBuyDebugLabel = nil,
         Menu           = nil,
         MenuScroll     = nil,
         itemButtons    = {},
@@ -64,6 +69,8 @@ function State.ClearStored()
         DropdownBtn    = nil,
         AutoBuyBtn     = nil,
         AmountSmallBtn = nil,
+        AutoBuyDebugFrame = nil,
+        AutoBuyDebugLabel = nil,
         Menu           = nil,
         MenuScroll     = nil,
         itemButtons    = {},
