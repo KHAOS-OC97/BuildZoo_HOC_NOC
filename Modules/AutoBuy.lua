@@ -248,6 +248,17 @@ local function summarizeRemoteCandidates(remotes)
     return "[REMOTES] " .. tostring(#remotes) .. " -> " .. table.concat(parts, ", ")
 end
 
+local function pushDebugLines(header, lines)
+    local out = {}
+    if header and header ~= "" then
+        table.insert(out, header)
+    end
+    for _, line in ipairs(lines or {}) do
+        table.insert(out, line)
+    end
+    updateDebugText(out)
+end
+
 local function getRemoteFullName(remote)
     local fullName = ""
     pcall(function()
@@ -256,10 +267,10 @@ local function getRemoteFullName(remote)
     return tostring(fullName or "")
 end
 
-local function collectObservedRemoteCandidates()
+local function collectObservedRemoteCandidates(forceRefresh)
     local now = os.clock()
     local scanInterval = _cfg.AUTO_BUY_REMOTE_SCAN_INTERVAL or 30
-    if (now - _lastRemoteScan) < scanInterval and next(_remoteCandidates) ~= nil then
+    if not forceRefresh and (now - _lastRemoteScan) < scanInterval and next(_remoteCandidates) ~= nil then
         return _remoteCandidates
     end
 
@@ -318,6 +329,90 @@ local function collectObservedRemoteCandidates()
     _remoteCandidates = candidates
     _lastRemoteScan = now
     return _remoteCandidates
+end
+
+local function getObjectLabel(obj)
+    if not obj then
+        return "?"
+    end
+    local fullName = getRemoteFullName(obj)
+    if fullName ~= "" then
+        return fullName
+    end
+    return tostring(obj.Name or "?")
+end
+
+local function buildScannerLines()
+    local lines = {}
+    local remotes = collectObservedRemoteCandidates(true)
+    table.insert(lines, "[SCAN] remotes candidatos: " .. tostring(#remotes))
+
+    local remoteLimit = math.min(#remotes, 12)
+    for i = 1, remoteLimit do
+        local remote = remotes[i]
+        table.insert(lines, string.format(
+            "[REMOTE %02d] %s | %s | score=%s",
+            i,
+            tostring(remote.ClassName),
+            getObjectLabel(remote),
+            tostring(scoreRemoteCandidate and scoreRemoteCandidate(remote) or "?")
+        ))
+    end
+
+    local pg = _svc and _svc.LocalPlayer and _svc.LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then
+        table.insert(lines, "[GUI] PlayerGui nao encontrado")
+        return lines
+    end
+
+    local roots = collectFruitShopRoots(pg)
+    table.insert(lines, "[SCAN] roots da loja: " .. tostring(#roots))
+    local rootLimit = math.min(#roots, 6)
+    for i = 1, rootLimit do
+        table.insert(lines, string.format("[ROOT %02d] %s", i, getObjectLabel(roots[i])))
+    end
+
+    local buttonCount = 0
+    for _, obj in ipairs(pg:GetDescendants()) do
+        if isGuiButton(obj) and isElementVisible(obj) then
+            local nameSig = normalize(obj.Name)
+            if nameSig == "buybutton" or nameSig == "robuxbuybutton" then
+                buttonCount = buttonCount + 1
+                if buttonCount <= 12 then
+                    table.insert(lines, string.format(
+                        "[BTN %02d] %s | text=%s | safe=%s | robux=%s",
+                        buttonCount,
+                        getObjectLabel(obj),
+                        tostring(getGuiText(obj)),
+                        tostring(buttonIsSafeCoinTarget and buttonIsSafeCoinTarget(obj) or false),
+                        tostring(isRobuxButton and isRobuxButton(obj) or false)
+                    ))
+                end
+            end
+        end
+    end
+    table.insert(lines, "[SCAN] botoes Buy/Robux visiveis: " .. tostring(buttonCount))
+
+    return lines
+end
+
+function AutoBuy.DebugScan(reason)
+    return runProtected(reason or "Scanner AutoBuy", function()
+        local lines = buildScannerLines()
+        pushDebugLines("[SCAN] Resultado no console", {
+            lines[1] or "[SCAN] sem dados",
+            lines[math.min(2, #lines)] or "",
+            lines[math.min(3, #lines)] or "",
+        })
+
+        print("===== AUTO BUY SCANNER START =====")
+        for _, line in ipairs(lines) do
+            print(line)
+        end
+        print("===== AUTO BUY SCANNER END =====")
+
+        return lines
+    end)
 end
 
 local function summarizeObservedRemotePaths(remotes)
@@ -1357,6 +1452,9 @@ function AutoBuy.Init(ctx)
         NextTargetCursor = 1,
     }
     _runtime = _G.__HOC_RUNTIME.AutoBuy
+    _G.HOC_AutoBuyScanner = function()
+        return AutoBuy.DebugScan("Scanner global")
+    end
 
     updateDebugText({
         "[INIT] AutoBuy carregado",

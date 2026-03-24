@@ -44,7 +44,7 @@ function FruitMenu.Build(Main, ctx)
 
     -- ── AUTO BUY ──────────────────────────────────────────────────────────────
     local AutoBuyBtn                   = Instance.new("TextButton", Main)
-    AutoBuyBtn.Size                    = UDim2.new(0.4, 0, 0, 22)
+    AutoBuyBtn.Size                    = UDim2.new(0.28, 0, 0, 22)
     AutoBuyBtn.Position                = UDim2.new(0.05, 0, 0, AUTOBUY_Y)
     AutoBuyBtn.BackgroundColor3        = _G_AutoBuy and cfg.Colors.Green or cfg.Colors.DarkRed
     AutoBuyBtn.Text                    = _G_AutoBuy and "AUTO BUY: ON" or "AUTO BUY: OFF"
@@ -68,8 +68,8 @@ function FruitMenu.Build(Main, ctx)
 
     -- ── Amount ────────────────────────────────────────────────────────────────
     local AmountSmallBtn                   = Instance.new("TextButton", Main)
-    AmountSmallBtn.Size                    = UDim2.new(0.4, 0, 0, 20)
-    AmountSmallBtn.Position                = UDim2.new(0.55, 0, 0, AUTOBUY_Y)
+    AmountSmallBtn.Size                    = UDim2.new(0.28, 0, 0, 20)
+    AmountSmallBtn.Position                = UDim2.new(0.36, 0, 0, AUTOBUY_Y)
     AmountSmallBtn.BackgroundColor3        = Color3.fromRGB(10, 10, 10)
     AmountSmallBtn.BackgroundTransparency  = 0.2
     AmountSmallBtn.Text                    = "Amt: " .. tostring(_G_BuyAmount)
@@ -84,6 +84,26 @@ function FruitMenu.Build(Main, ctx)
         elseif _G_BuyAmount < 20 then _G_BuyAmount = 20
         else                          _G_BuyAmount = 1 end
         AmountSmallBtn.Text = "Amt: " .. tostring(_G_BuyAmount)
+    end)
+
+    local ScanBtn                   = Instance.new("TextButton", Main)
+    ScanBtn.Size                    = UDim2.new(0.28, 0, 0, 20)
+    ScanBtn.Position                = UDim2.new(0.67, 0, 0, AUTOBUY_Y)
+    ScanBtn.BackgroundColor3        = cfg.Colors.Gray
+    ScanBtn.BackgroundTransparency  = 0.15
+    ScanBtn.Text                    = "SCAN"
+    ScanBtn.TextColor3              = cfg.Colors.White
+    ScanBtn.Font                    = Enum.Font.GothamBold
+    ScanBtn.TextSize                = 10
+    Instance.new("UICorner", ScanBtn).CornerRadius = UDim.new(0, 6)
+    stored.AutoBuyScanBtn = ScanBtn
+
+    ScanBtn.MouseButton1Click:Connect(function()
+        if AutoBuy and type(AutoBuy.DebugScan) == "function" then
+            task.spawn(function()
+                AutoBuy.DebugScan("Botao SCAN")
+            end)
+        end
     end)
 
     -- ── Debug AutoBuy ────────────────────────────────────────────────────────
