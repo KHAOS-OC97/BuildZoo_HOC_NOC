@@ -33,15 +33,22 @@ return {
     AUTO_BUY_MAX_FRUITS_PER_PULSE = 4,
     AUTO_BUY_INVOKE_YIELD_EVERY = 4,
     AUTO_BUY_REMOTE_ALLOWLIST = {
-        -- Exemplo de entrada segura apos confirmacao manual em runtime:
-        -- {
-        --     fullName = "ReplicatedStorage.Remotes.Shop.BuyPetFood",
-        --     className = "RemoteFunction",
-        --     coinOnly = true,
-        --     layouts = {"name", "name_amount", "verb_name_amount"},
-        --     verbs = {"Buy"},
-        --     identifiers = {"display", "path", "compact", "resId"},
-        -- },
+        {
+            fullName = "ReplicatedStorage.Remote.ProductBuyRF",
+            className = "RemoteFunction",
+            coinOnly = true,
+            category = "PetFood",
+            layouts = {
+                "name",
+                "name_amount",
+                "category_name",
+                "category_name_amount",
+                "verb_name",
+                "verb_name_amount",
+            },
+            verbs = {"Buy", "Purchase"},
+            identifiers = {"display", "path", "compact", "resId"},
+        },
     },
 
     -- BigPetFeed (modo silencioso por remotes)
