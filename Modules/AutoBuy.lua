@@ -16,6 +16,7 @@ local _lastRemoteScan = 0
 local isRobuxButton
 local buttonIsSafeCoinTarget
 local dismissRobuxModal
+local isElementVisible
 
 local ROBUX_MODAL_SCAN_INTERVAL = 0.75
 local ROBUX_GUARD_COOLDOWN = 20
@@ -253,7 +254,7 @@ local function collectFruitNamesForMatch(fruitName)
     return out
 end
 
-local function isElementVisible(element)
+isElementVisible = function(element)
     if not element or not element.Parent then return false end
 
     local current = element
@@ -492,6 +493,27 @@ local function collectCandidateContainers(button)
     return containers
 end
 
+local function isLeftPurchaseSlot(button)
+    if not button or not button.Parent then return false end
+
+    local buttonPos = button.AbsolutePosition
+    local buttonSize = button.AbsoluteSize
+    local parent = button.Parent
+    local parentPos = parent.AbsolutePosition
+    local parentSize = parent.AbsoluteSize
+
+    if not buttonPos or not buttonSize or not parentPos or not parentSize then
+        return false
+    end
+
+    local buttonCenterX = buttonPos.X + (buttonSize.X * 0.5)
+    local buttonCenterY = buttonPos.Y + (buttonSize.Y * 0.5)
+    local parentCenterX = parentPos.X + (parentSize.X * 0.5)
+    local parentCenterY = parentPos.Y + (parentSize.Y * 0.5)
+
+    return buttonCenterX < parentCenterX and buttonCenterY >= parentCenterY
+end
+
 local function buttonHasLocalNoStock(button)
     if not button or not button.Parent then return false end
 
@@ -529,15 +551,16 @@ buttonIsSafeCoinTarget = function(button)
         end
     end
 
+    if not isLeftPurchaseSlot(button) then
+        return false
+    end
+
     if buttonHasLocalNoStock(button) then
         return false
     end
 
     for _, container in ipairs(collectCandidateContainers(button)) do
         if container and cardLooksOutOfStock(container) then
-            return false
-        end
-        if container and containerHasRobuxSignals(container) then
             return false
         end
     end
@@ -928,7 +951,7 @@ local function tryGuiFallback(targets)
     local any = false
     local now = os.clock()
     local fruitCooldown = _cfg.AUTO_BUY_FRUIT_COOLDOWN or 20
-    local amount = math.max(1, tonumber(_G_BuyAmount) or 1)
+    local maxClicksPerStock = math.max(1, tonumber(_cfg.AUTO_BUY_MAX_CLICKS_PER_STOCK) or 25)
 
     for fruitName in pairs(targets) do
         local entry = shop[fruitName]
@@ -950,7 +973,9 @@ local function tryGuiFallback(targets)
             local last = _runtime.LastPurchaseAttempt[fruitName] or 0
             if (now - last) >= fruitCooldown then
                 local clicked = false
-                for _ = 1, amount do
+                for _ = 1, maxClicksPerStock do
+                    if buttonHasLocalNoStock(entry.button) then break end
+                    if cardLooksOutOfStock(entry.button.Parent) then break end
                     if not activateButton(entry.button) then break end
                     clicked = true
                     task.wait(_cfg.AUTO_BUY_REQUEST_SPACING or 0.08)
