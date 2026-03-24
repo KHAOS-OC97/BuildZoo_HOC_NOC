@@ -50,19 +50,32 @@ do
         local frame = Instance.new("Frame", sg)
         frame.AnchorPoint = Vector2.new(0.5, 0)
         frame.Position = UDim2.new(0.5, 0, 0.05, 0)
-        frame.Size = UDim2.new(0, 420, 0, 60)
+        frame.Size = UDim2.new(0, 480, 0, 60)
         frame.BackgroundColor3 = granted and Color3.fromRGB(30, 30, 30) or Color3.fromRGB(40, 10, 10)
         frame.BackgroundTransparency = 0.15
         frame.BorderSizePixel = 0
         Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
         local stroke = Instance.new("UIStroke", frame)
-        stroke.Color = granted and Color3.fromRGB(0, 200, 80) or Color3.fromRGB(220, 40, 40)
+        stroke.Color = Color3.fromRGB(255, 0, 0)
         stroke.Thickness = 2
 
+        -- RGB cycling border
+        local rgbRunning = true
+        task.spawn(function()
+            local t = 0
+            while rgbRunning do
+                t = t + task.wait()
+                local r = math.floor(math.sin(t * 2) * 127 + 128)
+                local g = math.floor(math.sin(t * 2 + 2.094) * 127 + 128)
+                local b = math.floor(math.sin(t * 2 + 4.189) * 127 + 128)
+                stroke.Color = Color3.fromRGB(r, g, b)
+            end
+        end)
+
         local lbl = Instance.new("TextLabel", frame)
-        lbl.Size = UDim2.new(1, -20, 1, 0)
-        lbl.Position = UDim2.new(0, 10, 0, 0)
+        lbl.Size = UDim2.new(1, -40, 1, 0)
+        lbl.Position = UDim2.new(0, 20, 0, 0)
         lbl.BackgroundTransparency = 1
         lbl.Font = Enum.Font.GothamBold
         lbl.TextSize = 18
@@ -73,6 +86,7 @@ do
         lbl.TextXAlignment = Enum.TextXAlignment.Center
 
         task.delay(granted and 4 or 6, function()
+            rgbRunning = false
             pcall(function()
                 local tw = game:GetService("TweenService")
                 local ti = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
