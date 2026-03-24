@@ -161,11 +161,6 @@ local function updateDebugText(lines)
     end
 
     _state.AutoBuyDebugText = text
-
-    local label = _state.Stored and _state.Stored.AutoBuyDebugLabel
-    if label and label.Parent then
-        label.Text = text
-    end
 end
 
 local function refreshDiagnosticLogLabel()

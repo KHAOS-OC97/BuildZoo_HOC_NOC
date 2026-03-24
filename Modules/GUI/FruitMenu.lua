@@ -5,8 +5,7 @@
       · DropdownBtn  — abre/fecha o painel de frutas com tween
       · Menu + ScrollingFrame — lista de frutas clicáveis
       · Select All / Clear / Close — ações em lote
-      · AutoBuyBtn   — ativa/desativa _G_AutoBuy
-      · AmountSmallBtn — cicla o valor de _G_BuyAmount
+    · AutoBuyBtn   — ativa/desativa _G_AutoBuy
 ]]
 
 local FruitMenu = {}
@@ -14,7 +13,6 @@ local FruitMenu = {}
 -- Botões de ação terminam em ~335px (207 + 32*4 = 335)
 local DROPDOWN_Y  = 367
 local AUTOBUY_Y   = 395
-local DEBUG_Y     = 423
 
 function FruitMenu.Build(Main, ctx)
     local cfg    = ctx.Config
@@ -83,7 +81,7 @@ function FruitMenu.Build(Main, ctx)
 
     -- ── AUTO BUY ──────────────────────────────────────────────────────────────
     local AutoBuyBtn                   = Instance.new("TextButton", Main)
-    AutoBuyBtn.Size                    = UDim2.new(0.28, 0, 0, 22)
+    AutoBuyBtn.Size                    = UDim2.new(0.58, 0, 0, 22)
     AutoBuyBtn.Position                = UDim2.new(0.05, 0, 0, AUTOBUY_Y)
     AutoBuyBtn.BackgroundColor3        = _G_AutoBuy and cfg.Colors.Green or cfg.Colors.DarkRed
     AutoBuyBtn.Text                    = _G_AutoBuy and "AUTO BUY: ON" or "AUTO BUY: OFF"
@@ -105,30 +103,10 @@ function FruitMenu.Build(Main, ctx)
         end
     end)
 
-    -- ── Amount ────────────────────────────────────────────────────────────────
-    local AmountSmallBtn                   = Instance.new("TextButton", Main)
-    AmountSmallBtn.Size                    = UDim2.new(0.28, 0, 0, 20)
-    AmountSmallBtn.Position                = UDim2.new(0.36, 0, 0, AUTOBUY_Y)
-    AmountSmallBtn.BackgroundColor3        = Color3.fromRGB(10, 10, 10)
-    AmountSmallBtn.BackgroundTransparency  = 0.2
-    AmountSmallBtn.Text                    = "Amt: " .. tostring(_G_BuyAmount)
-    AmountSmallBtn.TextColor3              = cfg.Colors.White
-    AmountSmallBtn.Font                    = Enum.Font.Gotham
-    AmountSmallBtn.TextSize                = 10
-    Instance.new("UICorner", AmountSmallBtn).CornerRadius = UDim.new(0, 6)
-    stored.AmountSmallBtn = AmountSmallBtn
-
-    AmountSmallBtn.MouseButton1Click:Connect(function()
-        if     _G_BuyAmount < 5  then _G_BuyAmount = _G_BuyAmount + 1
-        elseif _G_BuyAmount < 20 then _G_BuyAmount = 20
-        else                          _G_BuyAmount = 1 end
-        AmountSmallBtn.Text = "Amt: " .. tostring(_G_BuyAmount)
-    end)
-
     local ScanBtn                   = Instance.new("TextButton", Main)
     ScanBtn.Size                    = UDim2.new(0.28, 0, 0, 20)
     ScanBtn.Position                = UDim2.new(0.67, 0, 0, AUTOBUY_Y)
-    ScanBtn.BackgroundColor3        = cfg.Colors.Gray
+    ScanBtn.BackgroundColor3        = cfg.Colors.Dark
     ScanBtn.BackgroundTransparency  = 0.15
     ScanBtn.Text                    = "SCAN"
     ScanBtn.TextColor3              = cfg.Colors.White
@@ -142,41 +120,6 @@ function FruitMenu.Build(Main, ctx)
     ScanBtn.MouseButton1Click:Connect(function()
         setDiagVisible(not state.AutoBuyDiagVisible)
     end)
-
-    -- ── Debug AutoBuy ────────────────────────────────────────────────────────
-    local DebugFrame                   = Instance.new("Frame", Main)
-    DebugFrame.Size                    = UDim2.new(0.9, 0, 0, 86)
-    DebugFrame.Position                = UDim2.new(0.05, 0, 0, DEBUG_Y)
-    DebugFrame.BackgroundColor3        = cfg.Colors.DarkMid
-    DebugFrame.BackgroundTransparency  = 0.15
-    DebugFrame.BorderSizePixel         = 0
-    Instance.new("UICorner", DebugFrame).CornerRadius = UDim.new(0, 6)
-    stored.AutoBuyDebugFrame = DebugFrame
-    addPanelGradient(DebugFrame)
-    attachRGBStroke(DebugFrame, 1.2, 0.2)
-
-    local DebugTitle                   = Instance.new("TextLabel", DebugFrame)
-    DebugTitle.Size                    = UDim2.new(1, -10, 0, 18)
-    DebugTitle.Position                = UDim2.new(0, 5, 0, 2)
-    DebugTitle.BackgroundTransparency  = 1
-    DebugTitle.Text                    = "AUTO BUY DEBUG"
-    DebugTitle.TextColor3              = cfg.Colors.White
-    DebugTitle.Font                    = Enum.Font.GothamBold
-    DebugTitle.TextSize                = 10
-    DebugTitle.TextXAlignment          = Enum.TextXAlignment.Left
-
-    local DebugLabel                   = Instance.new("TextLabel", DebugFrame)
-    DebugLabel.Size                    = UDim2.new(1, -10, 1, -22)
-    DebugLabel.Position                = UDim2.new(0, 5, 0, 20)
-    DebugLabel.BackgroundTransparency  = 1
-    DebugLabel.Text                    = state.AutoBuyDebugText or "AUTO BUY DEBUG\nAguardando varredura..."
-    DebugLabel.TextColor3              = cfg.Colors.LightGray
-    DebugLabel.Font                    = Enum.Font.Code
-    DebugLabel.TextSize                = 10
-    DebugLabel.TextWrapped             = true
-    DebugLabel.TextXAlignment          = Enum.TextXAlignment.Left
-    DebugLabel.TextYAlignment          = Enum.TextYAlignment.Top
-    stored.AutoBuyDebugLabel = DebugLabel
 
     local DiagPanel                  = Instance.new("Frame", Main.Parent)
     DiagPanel.Size                   = UDim2.new(0, 320, 0, 300)
