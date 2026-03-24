@@ -168,10 +168,135 @@ local function updateDebugText(lines)
     end
 end
 
+local function refreshDiagnosticLogLabel()
+    local rawText = _state.AutoBuyDiagLogText or "AUTO BUY DIAGNOSTIC LOG\nPronto para scan."
+
+    local function escapeRichText(text)
+        return tostring(text or "")
+            :gsub("&", "&amp;")
+            :gsub("<", "&lt;")
+            :gsub(">", "&gt;")
+    end
+
+    local function getLevelColor(line)
+        local upper = tostring(line or "")
+        if upper:find("%[ERR%]", 1) then return "#FF6B6B" end
+        if upper:find("%[WARN%]", 1) then return "#FFC857" end
+        if upper:find("%[NO%]", 1) then return "#FF9F5A" end
+        if upper:find("%[OK%]", 1) then return "#66D17A" end
+        if upper:find("%[EVENT%]", 1) then return "#7BDFF2" end
+        if upper:find("%[SCAN%-ERR%]", 1) then return "#FF6B6B" end
+        if upper:find("%[SCAN%]", 1) or upper:find("%[REMOTE", 1, true) or upper:find("%[ROOT", 1, true) or upper:find("%[BTN", 1, true) then
+            return "#8BD3FF"
+        end
+        if upper:find("%[INFO%]", 1) or upper:find("%[HIDDEN%]", 1) or upper:find("%[SAFE%]", 1) then
+            return "#C9D1D9"
+        end
+        return "#D7DBE0"
+    end
+
+    local richLines = {}
+    for line in tostring(rawText):gmatch("([^\n]*)\n?") do
+        if line ~= "" then
+            table.insert(richLines, string.format(
+                '<font color="%s">%s</font>',
+                getLevelColor(line),
+                escapeRichText(line)
+            ))
+        end
+    end
+
+    local label = _state.Stored and _state.Stored.AutoBuyDiagLogLabel
+    if label and label.Parent then
+        label.RichText = true
+        label.Text = table.concat(richLines, "\n")
+    end
+
+    local lineCount = 0
+    for _ in tostring(rawText):gmatch("[^\n]+") do
+        lineCount = lineCount + 1
+    end
+
+    local countLabel = _state.Stored and _state.Stored.AutoBuyDiagCountLabel
+    if countLabel and countLabel.Parent then
+        countLabel.Text = "LINES: " .. tostring(lineCount)
+    end
+
+    local timeLabel = _state.Stored and _state.Stored.AutoBuyDiagTimeLabel
+    if timeLabel and timeLabel.Parent then
+        timeLabel.Text = "UPDATED: " .. tostring(_state.AutoBuyDiagLastStamp or "--:--:--")
+    end
+end
+
+local function getLogTimestamp()
+    local ok, value = pcall(function()
+        return os.date("%H:%M:%S")
+    end)
+    if ok and type(value) == "string" and value ~= "" then
+        return value
+    end
+    return string.format("%06.2f", os.clock())
+end
+
+local function setDiagnosticLogText(text)
+    _state.AutoBuyDiagLogText = tostring(text or "")
+    _state.AutoBuyDiagLastStamp = getLogTimestamp()
+    refreshDiagnosticLogLabel()
+end
+
+local function appendDiagnosticLogLines(lines)
+    local current = tostring(_state.AutoBuyDiagLogText or "AUTO BUY DIAGNOSTIC LOG\nPronto para scan.")
+    local rawLines = {}
+    if type(lines) == "table" then
+        for _, line in ipairs(lines) do
+            table.insert(rawLines, tostring(line or ""))
+        end
+    else
+        table.insert(rawLines, tostring(lines or ""))
+    end
+
+    local stamped = {}
+    local stamp = getLogTimestamp()
+    for _, line in ipairs(rawLines) do
+        if line ~= "" then
+            table.insert(stamped, string.format("[%s] %s", stamp, line))
+        end
+    end
+
+    local extra = table.concat(stamped, "\n")
+    if extra == "" then
+        refreshDiagnosticLogLabel()
+        return
+    end
+    if current ~= "" then
+        current = current .. "\n\n" .. extra
+    else
+        current = extra
+    end
+    setDiagnosticLogText(current)
+end
+
+local function tryCopyToClipboard(text)
+    if type(setclipboard) == "function" then
+        return pcall(setclipboard, text)
+    end
+    if type(toclipboard) == "function" then
+        return pcall(toclipboard, text)
+    end
+    if type(clipboard) == "function" then
+        return pcall(clipboard, text)
+    end
+    return false
+end
+
 local function reportRuntimeError(stage, err)
     local message = tostring(err or "erro desconhecido")
     local compact = message:gsub("%s+", " ")
     _runtime.LastError = compact
+    appendDiagnosticLogLines({
+        "[ERR] " .. tostring(stage or "AutoBuy"),
+        compact,
+    })
     updateDebugText({
         "[ERR] " .. tostring(stage or "AutoBuy") .. " -> falha interna",
         compact:sub(1, 220),
@@ -456,19 +581,49 @@ end
 function AutoBuy.DebugScan(reason)
     return runProtected(reason or "Scanner AutoBuy", function()
         local lines = buildScannerLines()
+        local heading = "===== AUTO BUY SCANNER START ====="
+        local footer = "===== AUTO BUY SCANNER END ====="
+        appendDiagnosticLogLines({heading, unpack(lines), footer})
         pushDebugLines("[SCAN] Resultado no console", {
             lines[1] or "[SCAN] sem dados",
             lines[math.min(2, #lines)] or "",
             lines[math.min(3, #lines)] or "",
         })
 
-        print("===== AUTO BUY SCANNER START =====")
+        print(heading)
         for _, line in ipairs(lines) do
             print(line)
         end
-        print("===== AUTO BUY SCANNER END =====")
+        print(footer)
 
         return lines
+    end)
+end
+
+function AutoBuy.ClearDiagnosticLog()
+    return runProtected("Clear diagnostic log", function()
+        setDiagnosticLogText("AUTO BUY DIAGNOSTIC LOG\n[INFO] Log limpo.")
+        pushDebugLines("[DIAG] Log limpo", {
+            "[INFO] Painel de diagnostico resetado",
+        })
+        return true
+    end)
+end
+
+function AutoBuy.CopyDiagnosticLog()
+    return runProtected("Copy diagnostic log", function()
+        local text = tostring(_state.AutoBuyDiagLogText or "")
+        local ok = tryCopyToClipboard(text)
+        if ok then
+            pushDebugLines("[DIAG] Log copiado", {
+                "[OK] Conteudo enviado para a area de transferencia",
+            })
+        else
+            pushDebugLines("[DIAG] Copia indisponivel", {
+                "[NO] Executor nao expoe setclipboard/toclipboard",
+            })
+        end
+        return ok
     end)
 end
 
@@ -1513,10 +1668,18 @@ function AutoBuy.Init(ctx)
         return AutoBuy.DebugScan("Scanner global")
     end
 
+    if type(_state.AutoBuyDiagLogText) ~= "string" or _state.AutoBuyDiagLogText == "" then
+        _state.AutoBuyDiagLogText = "AUTO BUY DIAGNOSTIC LOG\nPronto para scan."
+    end
+    if type(_state.AutoBuyDiagLastStamp) ~= "string" or _state.AutoBuyDiagLastStamp == "" then
+        _state.AutoBuyDiagLastStamp = getLogTimestamp()
+    end
+
     updateDebugText({
         "[INIT] AutoBuy carregado",
         "[INFO] Aguardando ativacao",
     })
+    refreshDiagnosticLogLabel()
 
     if _runtime.LoopStarted then return end
     _runtime.LoopStarted = true

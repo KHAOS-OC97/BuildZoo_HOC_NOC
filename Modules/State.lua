@@ -27,6 +27,9 @@ local State = {
 
     -- Texto de debug do AutoBuy mostrado na GUI
     AutoBuyDebugText = "AUTO BUY DEBUG\nAguardando varredura...",
+    AutoBuyDiagLogText = "AUTO BUY DIAGNOSTIC LOG\nPronto para scan.",
+    AutoBuyDiagVisible = false,
+    AutoBuyDiagLastStamp = "--:--:--",
 
     -- Mapa de seleção de frutas (populado pelo FruitMenu a partir de Config.FRUITS)
     SelectedFruits = {},
@@ -44,6 +47,10 @@ local State = {
         AutoBuyBtn     = nil,
         AmountSmallBtn = nil,
         AutoBuyScanBtn = nil,
+        AutoBuyDiagPanel = nil,
+        AutoBuyDiagLogLabel = nil,
+        AutoBuyDiagCountLabel = nil,
+        AutoBuyDiagTimeLabel = nil,
         AutoBuyDebugFrame = nil,
         AutoBuyDebugLabel = nil,
         Menu           = nil,
@@ -71,6 +78,10 @@ function State.ClearStored()
         AutoBuyBtn     = nil,
         AmountSmallBtn = nil,
         AutoBuyScanBtn = nil,
+        AutoBuyDiagPanel = nil,
+        AutoBuyDiagLogLabel = nil,
+        AutoBuyDiagCountLabel = nil,
+        AutoBuyDiagTimeLabel = nil,
         AutoBuyDebugFrame = nil,
         AutoBuyDebugLabel = nil,
         Menu           = nil,

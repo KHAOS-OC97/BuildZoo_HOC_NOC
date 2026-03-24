@@ -15,6 +15,9 @@ local FruitMenu = {}
 local DROPDOWN_Y  = 367
 local AUTOBUY_Y   = 395
 local DEBUG_Y     = 423
+local DIAG_Y      = 515
+local MAIN_CLOSED_H = 520
+local MAIN_OPEN_H   = 760
 
 function FruitMenu.Build(Main, ctx)
     local cfg    = ctx.Config
@@ -22,6 +25,64 @@ function FruitMenu.Build(Main, ctx)
     local state  = ctx.State
     local stored = state.Stored
     local AutoBuy = ctx.AutoBuy
+
+    local function attachRGBStroke(target, thickness, transparency)
+        local stroke = Instance.new("UIStroke")
+        stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        stroke.Thickness = thickness or 1.2
+        stroke.Transparency = transparency or 0.15
+        stroke.Color = state.GlobalColor
+        stroke.Parent = target
+
+        task.spawn(function()
+            while _G_Running and stroke.Parent and target.Parent do
+                stroke.Color = state.GlobalColor
+                task.wait(0.05)
+            end
+        end)
+
+        return stroke
+    end
+
+    local function addPanelGradient(target)
+        local gradient = Instance.new("UIGradient")
+        gradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(38, 38, 38)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(18, 18, 18)),
+        })
+        gradient.Rotation = 90
+        gradient.Parent = target
+        return gradient
+    end
+
+    local function addButtonGradient(target)
+        local gradient = Instance.new("UIGradient")
+        gradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(210, 210, 210)),
+        })
+        gradient.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.82),
+            NumberSequenceKeypoint.new(1, 0.96),
+        })
+        gradient.Rotation = 90
+        gradient.Parent = target
+        return gradient
+    end
+
+    local function setDiagVisible(visible)
+        state.AutoBuyDiagVisible = visible == true
+        if stored.AutoBuyDiagPanel then
+            stored.AutoBuyDiagPanel.Visible = state.AutoBuyDiagVisible
+        end
+        local targetH = state.AutoBuyDiagVisible and MAIN_OPEN_H or MAIN_CLOSED_H
+        svc.TweenService:Create(Main, TweenInfo.new(0.18, Enum.EasingStyle.Quad), {
+            Size = UDim2.new(0, 230, 0, targetH)
+        }):Play()
+        if stored.AutoBuyScanBtn then
+            stored.AutoBuyScanBtn.Text = state.AutoBuyDiagVisible and "CLOSE" or "SCAN"
+        end
+    end
 
     -- Inicializa SelectedFruits para frutas ainda não registradas
     for _, f in ipairs(cfg.FRUITS) do
@@ -97,13 +158,11 @@ function FruitMenu.Build(Main, ctx)
     ScanBtn.TextSize                = 10
     Instance.new("UICorner", ScanBtn).CornerRadius = UDim.new(0, 6)
     stored.AutoBuyScanBtn = ScanBtn
+    addButtonGradient(ScanBtn)
+    attachRGBStroke(ScanBtn, 1.4, 0.05)
 
     ScanBtn.MouseButton1Click:Connect(function()
-        if AutoBuy and type(AutoBuy.DebugScan) == "function" then
-            task.spawn(function()
-                AutoBuy.DebugScan("Botao SCAN")
-            end)
-        end
+        setDiagVisible(not state.AutoBuyDiagVisible)
     end)
 
     -- ── Debug AutoBuy ────────────────────────────────────────────────────────
@@ -115,6 +174,8 @@ function FruitMenu.Build(Main, ctx)
     DebugFrame.BorderSizePixel         = 0
     Instance.new("UICorner", DebugFrame).CornerRadius = UDim.new(0, 6)
     stored.AutoBuyDebugFrame = DebugFrame
+    addPanelGradient(DebugFrame)
+    attachRGBStroke(DebugFrame, 1.2, 0.2)
 
     local DebugTitle                   = Instance.new("TextLabel", DebugFrame)
     DebugTitle.Size                    = UDim2.new(1, -10, 0, 18)
@@ -138,6 +199,144 @@ function FruitMenu.Build(Main, ctx)
     DebugLabel.TextXAlignment          = Enum.TextXAlignment.Left
     DebugLabel.TextYAlignment          = Enum.TextYAlignment.Top
     stored.AutoBuyDebugLabel = DebugLabel
+
+    local DiagPanel                  = Instance.new("Frame", Main)
+    DiagPanel.Size                   = UDim2.new(0.9, 0, 0, 220)
+    DiagPanel.Position               = UDim2.new(0.05, 0, 0, DIAG_Y)
+    DiagPanel.BackgroundColor3       = cfg.Colors.DarkMid
+    DiagPanel.BackgroundTransparency = 0.08
+    DiagPanel.BorderSizePixel        = 0
+    DiagPanel.Visible                = state.AutoBuyDiagVisible == true
+    Instance.new("UICorner", DiagPanel).CornerRadius = UDim.new(0, 6)
+    stored.AutoBuyDiagPanel = DiagPanel
+    addPanelGradient(DiagPanel)
+    attachRGBStroke(DiagPanel, 1.6, 0.05)
+
+    local DiagTitle                  = Instance.new("TextLabel", DiagPanel)
+    DiagTitle.Size                   = UDim2.new(0.48, 0, 0, 18)
+    DiagTitle.Position               = UDim2.new(0, 5, 0, 3)
+    DiagTitle.BackgroundTransparency = 1
+    DiagTitle.Text                   = "AUTO BUY DIAGNOSTIC"
+    DiagTitle.TextColor3             = cfg.Colors.White
+    DiagTitle.Font                   = Enum.Font.GothamBold
+    DiagTitle.TextSize               = 10
+    DiagTitle.TextXAlignment         = Enum.TextXAlignment.Left
+
+    local DiagMetaFrame                  = Instance.new("Frame", DiagPanel)
+    DiagMetaFrame.Size                   = UDim2.new(0.5, -6, 0, 18)
+    DiagMetaFrame.Position               = UDim2.new(0.5, 0, 0, 3)
+    DiagMetaFrame.BackgroundTransparency = 1
+
+    local DiagMetaLayout                 = Instance.new("UIListLayout", DiagMetaFrame)
+    DiagMetaLayout.FillDirection         = Enum.FillDirection.Horizontal
+    DiagMetaLayout.HorizontalAlignment   = Enum.HorizontalAlignment.Right
+    DiagMetaLayout.Padding               = UDim.new(0, 8)
+
+    local DiagCountLabel                 = Instance.new("TextLabel", DiagMetaFrame)
+    DiagCountLabel.Size                  = UDim2.new(0, 58, 1, 0)
+    DiagCountLabel.BackgroundTransparency = 1
+    DiagCountLabel.Text                  = "LINES: 0"
+    DiagCountLabel.TextColor3            = cfg.Colors.LightGray
+    DiagCountLabel.Font                  = Enum.Font.Code
+    DiagCountLabel.TextSize              = 9
+    stored.AutoBuyDiagCountLabel = DiagCountLabel
+
+    local DiagTimeLabel                  = Instance.new("TextLabel", DiagMetaFrame)
+    DiagTimeLabel.Size                   = UDim2.new(0, 108, 1, 0)
+    DiagTimeLabel.BackgroundTransparency = 1
+    DiagTimeLabel.Text                   = "UPDATED: --:--:--"
+    DiagTimeLabel.TextColor3             = cfg.Colors.LightGray
+    DiagTimeLabel.Font                   = Enum.Font.Code
+    DiagTimeLabel.TextSize               = 9
+    stored.AutoBuyDiagTimeLabel = DiagTimeLabel
+
+    local DiagActions                = Instance.new("Frame", DiagPanel)
+    DiagActions.Size                 = UDim2.new(1, -10, 0, 24)
+    DiagActions.Position             = UDim2.new(0, 5, 0, 24)
+    DiagActions.BackgroundTransparency = 1
+
+    local DiagActionsLayout          = Instance.new("UIListLayout", DiagActions)
+    DiagActionsLayout.FillDirection  = Enum.FillDirection.Horizontal
+    DiagActionsLayout.Padding        = UDim.new(0, 6)
+    DiagActionsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+
+    local function makeDiagBtn(parent, text, color)
+        local button                 = Instance.new("TextButton", parent)
+        button.Size                  = UDim2.new(0, 64, 1, 0)
+        button.BackgroundColor3      = color
+        button.Text                  = text
+        button.TextColor3            = cfg.Colors.White
+        button.Font                  = Enum.Font.GothamBold
+        button.TextSize              = 10
+        button.AutoButtonColor       = true
+        Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
+        return button
+    end
+
+    local DiagScanBtn = makeDiagBtn(DiagActions, "SCAN", cfg.Colors.Gray)
+    local DiagCopyBtn = makeDiagBtn(DiagActions, "COPY LOG", cfg.Colors.Green)
+    local DiagClearBtn = makeDiagBtn(DiagActions, "CLEAR LOG", cfg.Colors.DarkRed)
+    DiagCopyBtn.Size = UDim2.new(0, 76, 1, 0)
+    DiagClearBtn.Size = UDim2.new(0, 84, 1, 0)
+    addButtonGradient(DiagScanBtn)
+    addButtonGradient(DiagCopyBtn)
+    addButtonGradient(DiagClearBtn)
+    attachRGBStroke(DiagScanBtn, 1.2, 0.08)
+    attachRGBStroke(DiagCopyBtn, 1.2, 0.08)
+    attachRGBStroke(DiagClearBtn, 1.2, 0.08)
+
+    local DiagScroll                  = Instance.new("ScrollingFrame", DiagPanel)
+    DiagScroll.Size                   = UDim2.new(1, -10, 1, -56)
+    DiagScroll.Position               = UDim2.new(0, 5, 0, 50)
+    DiagScroll.BackgroundColor3       = cfg.Colors.Dark
+    DiagScroll.BackgroundTransparency = 0.2
+    DiagScroll.BorderSizePixel        = 0
+    DiagScroll.ScrollBarThickness     = 6
+    DiagScroll.AutomaticCanvasSize    = Enum.AutomaticSize.Y
+    Instance.new("UICorner", DiagScroll).CornerRadius = UDim.new(0, 6)
+    addPanelGradient(DiagScroll)
+    attachRGBStroke(DiagScroll, 1.1, 0.18)
+
+    local DiagLogLabel                   = Instance.new("TextLabel", DiagScroll)
+    DiagLogLabel.Size                    = UDim2.new(1, -10, 0, 0)
+    DiagLogLabel.Position                = UDim2.new(0, 5, 0, 5)
+    DiagLogLabel.BackgroundTransparency  = 1
+    DiagLogLabel.AutomaticSize           = Enum.AutomaticSize.Y
+    DiagLogLabel.Text                    = state.AutoBuyDiagLogText or "AUTO BUY DIAGNOSTIC LOG\nPronto para scan."
+    DiagLogLabel.TextColor3              = cfg.Colors.LightGray
+    DiagLogLabel.Font                    = Enum.Font.Code
+    DiagLogLabel.TextSize                = 10
+    DiagLogLabel.RichText                = true
+    DiagLogLabel.TextWrapped             = true
+    DiagLogLabel.TextXAlignment          = Enum.TextXAlignment.Left
+    DiagLogLabel.TextYAlignment          = Enum.TextYAlignment.Top
+    stored.AutoBuyDiagLogLabel = DiagLogLabel
+
+    DiagScanBtn.MouseButton1Click:Connect(function()
+        if AutoBuy and type(AutoBuy.DebugScan) == "function" then
+            task.spawn(function()
+                AutoBuy.DebugScan("Painel diagnostico")
+            end)
+        end
+    end)
+
+    DiagCopyBtn.MouseButton1Click:Connect(function()
+        if AutoBuy and type(AutoBuy.CopyDiagnosticLog) == "function" then
+            task.spawn(function()
+                AutoBuy.CopyDiagnosticLog()
+            end)
+        end
+    end)
+
+    DiagClearBtn.MouseButton1Click:Connect(function()
+        if AutoBuy and type(AutoBuy.ClearDiagnosticLog) == "function" then
+            task.spawn(function()
+                AutoBuy.ClearDiagnosticLog()
+            end)
+        end
+    end)
+
+    setDiagVisible(state.AutoBuyDiagVisible == true)
 
     -- ── Frame do menu (expande/colapsa com tween) ─────────────────────────────
     local Menu                  = Instance.new("Frame", Main)
