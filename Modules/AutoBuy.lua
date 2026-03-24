@@ -184,6 +184,30 @@ local function buildSelectedDebugLines(selected, found)
     return lines
 end
 
+local function buildSilentDebugLines(selected, statusByFruit, extraLine)
+    local names = {}
+    for fruitName in pairs(selected) do
+        table.insert(names, fruitName)
+    end
+    table.sort(names)
+
+    local lines = {}
+    if extraLine and extraLine ~= "" then
+        table.insert(lines, extraLine)
+    end
+
+    for _, fruitName in ipairs(names) do
+        local status = statusByFruit and statusByFruit[fruitName] or nil
+        if status and status ~= "" then
+            table.insert(lines, status)
+        else
+            table.insert(lines, "[WAIT] " .. fruitName .. " -> sem tentativa silenciosa ainda")
+        end
+    end
+
+    return lines
+end
+
 local function matchesFruitShopKeyword(name)
     local sig = normalize(name)
     for _, kw in ipairs(_cfg.FRUIT_SHOP_KEYWORDS or {}) do
@@ -284,6 +308,18 @@ local function collectFruitNamesForMatch(fruitName)
     end
 
     add(fruitName)
+
+    local compact = tostring(fruitName or ""):gsub("%s+", "")
+    local under = tostring(fruitName or ""):gsub("%s+", "_")
+    local dash = tostring(fruitName or ""):gsub("%s+", "-")
+    add(compact)
+    add(under)
+    add(dash)
+    if compact ~= "" then
+        add("PetFood/" .. compact)
+        add("PetFood/" .. under)
+        add("PetFood/" .. dash)
+    end
 
     local info = _cfg and _cfg.FRUIT_CANONICAL and _cfg.FRUIT_CANONICAL[fruitName]
     if info then
@@ -914,11 +950,15 @@ local function trySilentBuy(targets)
     if robuxGuardActive() then return false, false end
 
     local remotes = refreshRemoteCandidates()
-    if #remotes == 0 then return false, false end
+    if #remotes == 0 then
+        updateDebugText(buildSilentDebugLines(targets, nil, "[NO] Nenhum remote de compra encontrado"))
+        return false, false
+    end
 
     local now = os.clock()
     local anyAttempt = false
     local anyReliableSuccess = false
+    local statusByFruit = {}
     local fruitCooldown = _cfg.AUTO_BUY_FRUIT_COOLDOWN or 20
     local probeCooldown = _cfg.AUTO_BUY_PROBE_COOLDOWN or 6
     local amount = math.max(1, tonumber(_G_BuyAmount) or 1)
@@ -935,6 +975,7 @@ local function trySilentBuy(targets)
         if (now - lastActivity) >= waitWindow then
             local variants = buildArgVariants(fruitName, amount)
             local totalCombos = #remotes * #variants
+            statusByFruit[fruitName] = "[TRY] " .. fruitName .. " -> " .. tostring(#remotes) .. " remotes / " .. tostring(#variants) .. " variantes"
 
             if totalCombos > 0 then
                 local probeIndex = tonumber(_runtime.ProbeIndexByFruit[fruitName]) or 1
@@ -969,10 +1010,12 @@ local function trySilentBuy(targets)
                             anyReliableSuccess = true
                             sent = true
                             _runtime.PreferredRemoteByFruit[fruitName] = remote:GetFullName()
+                            statusByFruit[fruitName] = "[OK] " .. fruitName .. " -> remote confirmado"
                             break
                         end
 
                         if kind == "event" then
+                            statusByFruit[fruitName] = "[EVENT] " .. fruitName .. " -> evento disparado, aguardando confirmacao"
                             break
                         end
                     end
@@ -990,10 +1033,19 @@ local function trySilentBuy(targets)
                     task.wait(_cfg.AUTO_BUY_REQUEST_SPACING or 0.08)
                 elseif fruitHadAttempt then
                     _runtime.LastSilentProbe[fruitName] = now
+                    if not statusByFruit[fruitName] or statusByFruit[fruitName] == "" or statusByFruit[fruitName]:find("%[TRY%]", 1, false) then
+                        statusByFruit[fruitName] = "[NO] " .. fruitName .. " -> remote nao confirmou compra"
+                    end
                 end
+            else
+                statusByFruit[fruitName] = "[NO] " .. fruitName .. " -> nenhuma variante de argumento"
             end
+        else
+            statusByFruit[fruitName] = "[COOLDOWN] " .. fruitName .. " -> aguardando proxima tentativa"
         end
     end
+
+    updateDebugText(buildSilentDebugLines(targets, statusByFruit, "[HIDDEN] Modo oculto por remote"))
 
     return anyReliableSuccess, anyAttempt
 end
