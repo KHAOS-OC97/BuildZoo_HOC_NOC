@@ -17,6 +17,78 @@ local isRobuxButton
 local buttonIsSafeCoinTarget
 local dismissRobuxModal
 
+local ROBUX_MODAL_SCAN_INTERVAL = 0.75
+local ROBUX_GUARD_COOLDOWN = 20
+
+local function normalizeCompact(text)
+    return tostring(text or ""):lower():gsub("[^%w]+", "")
+end
+
+local function getFruitConfig(fruitName)
+    for _, fruit in ipairs(_cfg and _cfg.FRUITS or {}) do
+        if fruit.name == fruitName then
+            return fruit
+        end
+    end
+    return nil
+end
+
+local function collectExpectedPriceTokens(fruitName)
+    local out = {}
+    local seen = {}
+    local fruit = getFruitConfig(fruitName)
+    if not fruit or not fruit.price then
+        return out
+    end
+
+    local function add(value)
+        local token = normalizeCompact(value)
+        if token ~= "" and not seen[token] then
+            seen[token] = true
+            table.insert(out, token)
+        end
+    end
+
+    local raw = tostring(fruit.price)
+    add(raw)
+    add(raw:gsub(",", ""))
+    add(raw:gsub("%.", ""))
+    add(raw:gsub(",", ""):gsub("%.", ""))
+
+    return out
+end
+
+local function textSetHasAnyPrice(texts, fruitName)
+    local priceTokens = collectExpectedPriceTokens(fruitName)
+    if #priceTokens == 0 then
+        return true
+    end
+
+    for _, text in ipairs(texts) do
+        local compactText = normalizeCompact(text)
+        for _, token in ipairs(priceTokens) do
+            if compactText:find(token, 1, true) then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+local function setRobuxGuard(reason)
+    _runtime.RobuxGuardUntil = os.clock() + ROBUX_GUARD_COOLDOWN
+    _cachedShop = {}
+    _lastFullScan = 0
+    if reason then
+        _runtime.LastRobuxGuardReason = reason
+    end
+end
+
+local function robuxGuardActive()
+    return (tonumber(_runtime and _runtime.RobuxGuardUntil) or 0) > os.clock()
+end
+
 local function normalize(text)
     return tostring(text or ""):lower():gsub("%s+", "")
 end
@@ -138,18 +210,18 @@ local function collectFruitShopRoots(playerGui)
 
     for _, obj in ipairs(playerGui:GetDescendants()) do
         if matchesFruitShopKeyword(obj.Name) then
-            add(obj)
+            if isElementVisible(obj) then
+                add(obj)
+            end
         elseif isGuiButton(obj) and normalize(obj.Name) == "buybutton" then
             local parent = obj.Parent
             if parent then
-                add(parent)
-                add(parent.Parent)
+                if isElementVisible(obj) then
+                    add(parent)
+                    add(parent.Parent)
+                end
             end
         end
-    end
-
-    if #roots == 0 then
-        add(playerGui)
     end
 
     return roots
@@ -200,6 +272,7 @@ end
 local function activateButton(button)
     if not button then return false end
     if not isElementVisible(button) then return false end
+    if robuxGuardActive() then return false end
 
     -- Modo estrito: nunca interage com botao que nao seja BuyButton (coin).
     if (_cfg and _cfg.AUTO_BUY_STRICT_COIN_ONLY == true) then
@@ -222,19 +295,23 @@ local function activateButton(button)
     end
 
     local success = false
+    dismissRobuxModal(true)
+
     if typeof(firesignal) == "function" then
         pcall(function()
             firesignal(button.MouseButton1Click)
             success = true
         end)
+    else
+        pcall(function()
+            button:Activate()
+            success = true
+        end)
     end
 
-    pcall(function()
-        button:Activate()
-        success = true
-    end)
-
-    dismissRobuxModal()
+    if dismissRobuxModal(true) then
+        success = false
+    end
 
     return success
 end
@@ -308,9 +385,16 @@ local function isRobuxModalText(text)
         or sig:find("termsofuse", 1, true)
 end
 
-dismissRobuxModal = function()
+dismissRobuxModal = function(force)
     local pg = _svc.LocalPlayer and _svc.LocalPlayer:FindFirstChild("PlayerGui")
     if not pg then return false end
+
+    local now = os.clock()
+    local lastScan = tonumber(_runtime and _runtime.LastRobuxModalScan) or 0
+    if not force and (now - lastScan) < ROBUX_MODAL_SCAN_INTERVAL then
+        return false
+    end
+    _runtime.LastRobuxModalScan = now
 
     local modalRoot = nil
 
@@ -331,6 +415,8 @@ dismissRobuxModal = function()
     end
 
     if not modalRoot then return false end
+
+    setRobuxGuard("robux-modal")
 
     for _, obj in ipairs(modalRoot:GetDescendants()) do
         if isGuiButton(obj) and isElementVisible(obj) then
@@ -431,6 +517,9 @@ buttonIsSafeCoinTarget = function(button)
     if not button or isRobuxButton(button) then
         return false
     end
+    if robuxGuardActive() then
+        return false
+    end
 
     local nameSig = normalize(button.Name)
     local textSig = normalize(getGuiText(button))
@@ -529,6 +618,11 @@ local function refreshShop(playerGui, selected)
 
     local found = {}
     local roots = collectFruitShopRoots(playerGui)
+    if #roots == 0 then
+        _cachedShop = {}
+        _lastFullScan = now
+        return _cachedShop
+    end
 
     -- Mapa de aliases por fruta para match rapido.
     local aliasesByFruit = {}
@@ -552,7 +646,10 @@ local function refreshShop(playerGui, selected)
 
                 if not cardLooksOutOfStock(scanRoot) and buttonIsSafeCoinTarget(obj) then
                     for fruitName in pairs(selected) do
-                        if not found[fruitName] and textSetHasAnyAlias(textPool, aliasesByFruit[fruitName] or {}) then
+                        if not found[fruitName]
+                            and textSetHasAnyAlias(textPool, aliasesByFruit[fruitName] or {})
+                            and textSetHasAnyPrice(textPool, fruitName)
+                        then
                             found[fruitName] = {
                                 label = obj,
                                 button = obj,
@@ -584,7 +681,12 @@ local function refreshShop(playerGui, selected)
                             if not btn and obj.Parent and obj.Parent.Parent then
                                 btn = findBuyButtonFast(obj.Parent.Parent)
                             end
-                            if btn and buttonIsSafeCoinTarget(btn) then
+                            local owner = btn and btn.Parent
+                            local ownerTexts = collectLocalTexts(owner)
+                            if btn
+                                and buttonIsSafeCoinTarget(btn)
+                                and textSetHasAnyPrice(ownerTexts, fruitName)
+                            then
                                 found[fruitName] = {label = obj, button = btn}
                             end
                         end
@@ -724,6 +826,7 @@ end
 
 local function trySilentBuy(targets)
     if next(targets) == nil then return false, false end
+    if robuxGuardActive() then return false, false end
 
     local remotes = refreshRemoteCandidates()
     if #remotes == 0 then return false, false end
@@ -766,7 +869,7 @@ local function trySilentBuy(targets)
                     local args = variants[variantIdx]
 
                     local ok, kind, result = invokeRemote(remote, args)
-                    dismissRobuxModal()
+                    dismissRobuxModal(false)
 
                     probeIndex = probeIndex + 1
                     if probeIndex > totalCombos then
@@ -812,6 +915,9 @@ end
 
 local function tryGuiFallback(targets)
     if not (_cfg.AUTO_BUY_ALLOW_GUI_FALLBACK == true) then
+        return false
+    end
+    if robuxGuardActive() then
         return false
     end
 
@@ -861,7 +967,7 @@ local function tryGuiFallback(targets)
 end
 
 function AutoBuy.Pulse()
-    dismissRobuxModal()
+    dismissRobuxModal(false)
 
     local targets = collectTargets()
     if next(targets) == nil then
@@ -892,6 +998,9 @@ function AutoBuy.Init(ctx)
         LastSweep = 0,
         LastPurchaseAttempt = {},
         LastSilentProbe = {},
+        LastRobuxModalScan = 0,
+        RobuxGuardUntil = 0,
+        LastRobuxGuardReason = nil,
         ProbeIndexByFruit = {},
         PreferredRemoteByFruit = {},
         NextTargetCursor = 1,
