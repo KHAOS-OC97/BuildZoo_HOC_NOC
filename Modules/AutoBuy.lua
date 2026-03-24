@@ -247,6 +247,231 @@ local function summarizeRemoteCandidates(remotes)
     return "[REMOTES] " .. tostring(#remotes) .. " -> " .. table.concat(parts, ", ")
 end
 
+local function getRemoteFullName(remote)
+    local fullName = ""
+    pcall(function()
+        fullName = remote:GetFullName()
+    end)
+    return tostring(fullName or "")
+end
+
+local function collectObservedRemoteCandidates()
+    local now = os.clock()
+    local scanInterval = _cfg.AUTO_BUY_REMOTE_SCAN_INTERVAL or 30
+    if (now - _lastRemoteScan) < scanInterval and next(_remoteCandidates) ~= nil then
+        return _remoteCandidates
+    end
+
+    local keywords = {
+        "fruit", "food", "petfood", "shop", "buy", "purchase", "merchant", "stock", "restock", "item",
+    }
+
+    local candidates = {}
+    local seen = {}
+    local containers = {
+        game:GetService("ReplicatedStorage"),
+        game:GetService("ReplicatedFirst"),
+        game:GetService("Workspace"),
+    }
+
+    local localPlayer = _svc and _svc.LocalPlayer or nil
+    if localPlayer then
+        table.insert(containers, localPlayer)
+        local playerGui = localPlayer:FindFirstChild("PlayerGui")
+        if playerGui then
+            table.insert(containers, playerGui)
+        end
+        local playerScripts = localPlayer:FindFirstChild("PlayerScripts")
+        if playerScripts then
+            table.insert(containers, playerScripts)
+        end
+    end
+
+    for _, root in ipairs(containers) do
+        for _, obj in ipairs(root:GetDescendants()) do
+            if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+                local fullName = getRemoteFullName(obj)
+                local sig = normalize(fullName .. " " .. obj.Name)
+                for _, kw in ipairs(keywords) do
+                    if sig:find(kw, 1, true) then
+                        if not seen[fullName] then
+                            seen[fullName] = true
+                            table.insert(candidates, obj)
+                        end
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    table.sort(candidates, function(a, b)
+        return scoreRemoteCandidate(a) > scoreRemoteCandidate(b)
+    end)
+
+    local maxCandidates = math.max(1, tonumber(_cfg.AUTO_BUY_MAX_REMOTE_CANDIDATES) or #candidates)
+    while #candidates > maxCandidates do
+        table.remove(candidates)
+    end
+
+    _remoteCandidates = candidates
+    _lastRemoteScan = now
+    return _remoteCandidates
+end
+
+local function summarizeObservedRemotePaths(remotes)
+    if not remotes or #remotes == 0 then
+        return "[DISCOVERY] nenhum candidato observado"
+    end
+
+    local parts = {}
+    local limit = math.min(#remotes, 2)
+    for i = 1, limit do
+        local fullName = getRemoteFullName(remotes[i])
+        if fullName == "" then
+            fullName = remotes[i].Name or "?"
+        end
+        table.insert(parts, fullName)
+    end
+
+    return "[DISCOVERY] " .. table.concat(parts, " | ")
+end
+
+local function getApprovedRemoteSpecs()
+    return (_cfg and _cfg.AUTO_BUY_REMOTE_ALLOWLIST) or {}
+end
+
+local function normalizeClassName(value)
+    return tostring(value or ""):gsub("%s+", "")
+end
+
+local function remoteMatchesAllowlistSpec(remote, spec)
+    if not remote or not spec then return false end
+
+    local fullName = getRemoteFullName(remote)
+    local className = remote.ClassName
+    if spec.fullName and spec.fullName ~= fullName then
+        return false
+    end
+    if spec.name and tostring(spec.name) ~= tostring(remote.Name) then
+        return false
+    end
+    if spec.className and normalizeClassName(spec.className) ~= normalizeClassName(className) then
+        return false
+    end
+
+    return fullName ~= ""
+end
+
+local function collectApprovedRemotes()
+    local observed = collectObservedRemoteCandidates()
+    local specs = getApprovedRemoteSpecs()
+    if #specs == 0 then
+        return {}, observed
+    end
+
+    local approved = {}
+    for _, remote in ipairs(observed) do
+        for _, spec in ipairs(specs) do
+            if remoteMatchesAllowlistSpec(remote, spec) then
+                table.insert(approved, {
+                    remote = remote,
+                    spec = spec,
+                })
+                break
+            end
+        end
+    end
+
+    return approved, observed
+end
+
+local function buildFruitIdentifiers(fruitName)
+    local identifiers = {
+        display = {},
+        path = {},
+        compact = {},
+        resId = {},
+    }
+
+    local seen = {}
+    local function add(kind, value)
+        local key = kind .. ":" .. tostring(value or "")
+        local asString = tostring(value or "")
+        if asString ~= "" and not seen[key] then
+            seen[key] = true
+            table.insert(identifiers[kind], value)
+        end
+    end
+
+    add("display", fruitName)
+
+    for _, alias in ipairs(collectFruitNamesForMatch(fruitName)) do
+        local aliasText = tostring(alias)
+        add("path", aliasText)
+        add("compact", aliasText:gsub("%s+", ""))
+        add("compact", aliasText:gsub("%s+", "_") )
+        add("compact", aliasText:gsub("%s+", "-") )
+    end
+
+    local info = _cfg and _cfg.FRUIT_CANONICAL and _cfg.FRUIT_CANONICAL[fruitName]
+    if info and info.resId ~= nil then
+        add("resId", info.resId)
+        add("resId", tostring(info.resId))
+    end
+
+    return identifiers
+end
+
+local function buildArgVariantsForSpec(fruitName, amount, spec)
+    local identifiers = buildFruitIdentifiers(fruitName)
+    local identifierKinds = spec.identifiers or {"display", "path", "compact", "resId"}
+    local layouts = spec.layouts or {"name", "name_amount"}
+    local verbs = spec.verbs or {"Buy", "Purchase"}
+    local category = spec.category or "Fruit"
+    local variants = {}
+    local seen = {}
+
+    local function addArgs(...)
+        local args = {...}
+        local parts = {}
+        for i = 1, #args do
+            parts[i] = tostring(args[i])
+        end
+        local key = table.concat(parts, "|")
+        if not seen[key] then
+            seen[key] = true
+            table.insert(variants, args)
+        end
+    end
+
+    for _, kind in ipairs(identifierKinds) do
+        for _, value in ipairs(identifiers[kind] or {}) do
+            for _, layout in ipairs(layouts) do
+                if layout == "name" then
+                    addArgs(value)
+                elseif layout == "name_amount" then
+                    addArgs(value, amount)
+                elseif layout == "verb_name" then
+                    for _, verb in ipairs(verbs) do
+                        addArgs(verb, value)
+                    end
+                elseif layout == "verb_name_amount" then
+                    for _, verb in ipairs(verbs) do
+                        addArgs(verb, value, amount)
+                    end
+                elseif layout == "category_name" then
+                    addArgs(category, value)
+                elseif layout == "category_name_amount" then
+                    addArgs(category, value, amount)
+                end
+            end
+        end
+    end
+
+    return variants
+end
+
 local function matchesFruitShopKeyword(name)
     local sig = normalize(name)
     for _, kw in ipairs(_cfg.FRUIT_SHOP_KEYWORDS or {}) do
@@ -861,65 +1086,6 @@ local function refreshShop(playerGui, selected)
     return found
 end
 
-local function refreshRemoteCandidates()
-    local now = os.clock()
-    local scanInterval = _cfg.AUTO_BUY_REMOTE_SCAN_INTERVAL or 30
-    if (now - _lastRemoteScan) < scanInterval and next(_remoteCandidates) ~= nil then
-        return _remoteCandidates
-    end
-
-    local keywords = {
-        "fruit", "food", "petfood", "shop", "buy", "purchase", "merchant", "stock", "restock", "item",
-    }
-
-    local candidates = {}
-    local containers = {
-        game:GetService("ReplicatedStorage"),
-        game:GetService("ReplicatedFirst"),
-        game:GetService("Workspace"),
-    }
-
-    local localPlayer = _svc and _svc.LocalPlayer or nil
-    if localPlayer then
-        table.insert(containers, localPlayer)
-        local playerGui = localPlayer:FindFirstChild("PlayerGui")
-        if playerGui then
-            table.insert(containers, playerGui)
-        end
-        local playerScripts = localPlayer:FindFirstChild("PlayerScripts")
-        if playerScripts then
-            table.insert(containers, playerScripts)
-        end
-    end
-
-    for _, root in ipairs(containers) do
-        for _, obj in ipairs(root:GetDescendants()) do
-            if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-                local sig = normalize(obj:GetFullName() .. " " .. obj.Name)
-                for _, kw in ipairs(keywords) do
-                    if sig:find(kw, 1, true) then
-                        table.insert(candidates, obj)
-                        break
-                    end
-                end
-            end
-        end
-    end
-
-    table.sort(candidates, function(a, b)
-        return scoreRemoteCandidate(a) > scoreRemoteCandidate(b)
-    end)
-
-    local maxCandidates = math.max(1, tonumber(_cfg.AUTO_BUY_MAX_REMOTE_CANDIDATES) or #candidates)
-    while #candidates > maxCandidates do
-        table.remove(candidates)
-    end
-
-    _remoteCandidates = candidates
-    _lastRemoteScan = now
-    return _remoteCandidates
-end
-
 local function invokeRemote(remote, args)
     local ok = false
     local kind = "unknown"
@@ -938,74 +1104,17 @@ local function invokeRemote(remote, args)
     return ok, kind, result
 end
 
-local function buildArgVariants(fruitName, amount)
-    local names = {}
-    local seen = {}
-    local maxVariants = math.max(1, tonumber(_cfg.AUTO_BUY_MAX_ARG_VARIANTS) or 24)
-
-    local function addName(n)
-        local s = tostring(n or "")
-        if s ~= "" and not seen[s] then
-            seen[s] = true
-            table.insert(names, s)
-        end
-    end
-
-    for _, alias in ipairs(collectFruitNamesForMatch(fruitName)) do
-        local noSpace = alias:gsub("%s+", "")
-        local under = alias:gsub("%s+", "_")
-        local dash = alias:gsub("%s+", "-")
-
-        addName(alias)
-        addName(noSpace)
-        addName(under)
-        addName(dash)
-        addName(alias:lower())
-        addName(noSpace:lower())
-    end
-
-    local variants = {}
-    local variantSeen = {}
-    local function addArgs(...)
-        if #variants >= maxVariants then return end
-
-        local args = {...}
-        local keyParts = {}
-        for i = 1, #args do
-            keyParts[i] = tostring(args[i])
-        end
-        local key = table.concat(keyParts, "|")
-        if variantSeen[key] then return end
-
-        variantSeen[key] = true
-        table.insert(variants, args)
-    end
-
-    for _, n in ipairs(names) do
-        addArgs(n)
-        addArgs(n, amount)
-        addArgs("Buy", n, amount)
-        addArgs("Buy", n)
-        addArgs("Purchase", n, amount)
-        addArgs("Purchase", n)
-        addArgs("Fruit", n)
-        addArgs("Fruit", n, amount)
-
-        if #variants >= maxVariants then
-            break
-        end
-    end
-
-    return variants
-end
-
 local function trySilentBuy(targets)
     if next(targets) == nil then return false, false end
     if robuxGuardActive() then return false, false end
 
-    local remotes = refreshRemoteCandidates()
-    if #remotes == 0 then
-        updateDebugText(buildSilentDebugLines(targets, nil, "[NO] Nenhum remote de compra encontrado"))
+    local approvedRemotes, observedRemotes = collectApprovedRemotes()
+    if #approvedRemotes == 0 then
+        updateDebugText(buildSilentDebugLines(
+            targets,
+            nil,
+            "[SAFE] Nenhum remote aprovado | " .. summarizeObservedRemotePaths(observedRemotes)
+        ))
         return false, false
     end
 
@@ -1019,7 +1128,7 @@ local function trySilentBuy(targets)
     local probeBudget = math.max(1, tonumber(_cfg.AUTO_BUY_MAX_PROBES_PER_FRUIT) or 6)
     local yieldEvery = math.max(1, tonumber(_cfg.AUTO_BUY_INVOKE_YIELD_EVERY) or 8)
     local targetBatch = collectTargetBatch(targets)
-    updateDebugText(buildSilentDebugLines(targets, statusByFruit, "[HIDDEN] Pulso iniciado | " .. summarizeRemoteCandidates(remotes)))
+    updateDebugText(buildSilentDebugLines(targets, statusByFruit, "[HIDDEN] Allowlist ativa | " .. summarizeRemoteCandidates(observedRemotes)))
 
     for _, fruitName in ipairs(targetBatch) do
         local lastSuccess = _runtime.LastPurchaseAttempt[fruitName] or 0
@@ -1028,9 +1137,18 @@ local function trySilentBuy(targets)
         local lastActivity = math.max(lastSuccess, lastProbe)
 
         if (now - lastActivity) >= waitWindow then
-            local variants = buildArgVariants(fruitName, amount)
-            local totalCombos = #remotes * #variants
-            statusByFruit[fruitName] = "[TRY] " .. fruitName .. " -> " .. tostring(#remotes) .. " remotes / " .. tostring(#variants) .. " variantes"
+            local totalCombos = 0
+            local variantsByRemote = {}
+            for _, entry in ipairs(approvedRemotes) do
+                local variants = buildArgVariantsForSpec(fruitName, amount, entry.spec)
+                variantsByRemote[#variantsByRemote + 1] = {
+                    remote = entry.remote,
+                    spec = entry.spec,
+                    variants = variants,
+                }
+                totalCombos = totalCombos + #variants
+            end
+            statusByFruit[fruitName] = "[TRY] " .. fruitName .. " -> " .. tostring(#approvedRemotes) .. " remotes aprovados / " .. tostring(totalCombos) .. " variantes"
 
             if totalCombos > 0 then
                 local probeIndex = tonumber(_runtime.ProbeIndexByFruit[fruitName]) or 1
@@ -1043,11 +1161,25 @@ local function trySilentBuy(targets)
                 local fruitProbes = math.min(probeBudget, totalCombos)
 
                 for _ = 1, fruitProbes do
-                    local zeroIdx = probeIndex - 1
-                    local remoteIdx = math.floor(zeroIdx / #variants) + 1
-                    local variantIdx = (zeroIdx % #variants) + 1
-                    local remote = remotes[remoteIdx]
-                    local args = variants[variantIdx]
+                    local cursor = probeIndex
+                    local remote = nil
+                    local args = nil
+                    local spec = nil
+
+                    for _, item in ipairs(variantsByRemote) do
+                        if cursor <= #item.variants then
+                            remote = item.remote
+                            spec = item.spec
+                            args = item.variants[cursor]
+                            break
+                        end
+                        cursor = cursor - #item.variants
+                    end
+
+                    if not remote or not args then
+                        probeIndex = 1
+                        break
+                    end
 
                     local ok, kind, result = invokeRemote(remote, args)
                     dismissRobuxModal(false)
@@ -1065,12 +1197,12 @@ local function trySilentBuy(targets)
                             anyReliableSuccess = true
                             sent = true
                             _runtime.PreferredRemoteByFruit[fruitName] = remote:GetFullName()
-                            statusByFruit[fruitName] = "[OK] " .. fruitName .. " -> remote confirmado"
+                            statusByFruit[fruitName] = "[OK] " .. fruitName .. " -> aprovado: " .. (spec.fullName or remote.Name)
                             break
                         end
 
                         if kind == "event" then
-                            statusByFruit[fruitName] = "[EVENT] " .. fruitName .. " -> evento disparado, aguardando confirmacao"
+                            statusByFruit[fruitName] = "[EVENT] " .. fruitName .. " -> aprovado: " .. (spec.fullName or remote.Name)
                             break
                         end
                     end
@@ -1089,18 +1221,18 @@ local function trySilentBuy(targets)
                 elseif fruitHadAttempt then
                     _runtime.LastSilentProbe[fruitName] = now
                     if not statusByFruit[fruitName] or statusByFruit[fruitName] == "" or statusByFruit[fruitName]:find("%[TRY%]", 1, false) then
-                        statusByFruit[fruitName] = "[NO] " .. fruitName .. " -> remote nao confirmou compra"
+                        statusByFruit[fruitName] = "[NO] " .. fruitName .. " -> allowlist nao confirmou compra"
                     end
                 end
             else
-                statusByFruit[fruitName] = "[NO] " .. fruitName .. " -> nenhuma variante de argumento"
+                statusByFruit[fruitName] = "[NO] " .. fruitName .. " -> nenhuma variante aprovada"
             end
         else
             statusByFruit[fruitName] = "[COOLDOWN] " .. fruitName .. " -> aguardando proxima tentativa"
         end
     end
 
-    updateDebugText(buildSilentDebugLines(targets, statusByFruit, "[HIDDEN] Modo oculto por remote"))
+    updateDebugText(buildSilentDebugLines(targets, statusByFruit, "[HIDDEN] Modo oculto por allowlist"))
 
     return anyReliableSuccess, anyAttempt
 end
@@ -1171,6 +1303,10 @@ function AutoBuy.Pulse()
 
     local guiOnly = (_cfg.AUTO_BUY_GUI_ONLY == true)
     if guiOnly then
+        updateDebugText({
+            "[SAFE] Remote bloqueado",
+            "[GUI] Modo coin-only pela esquerda",
+        })
         return tryGuiFallback(targets)
     end
 
