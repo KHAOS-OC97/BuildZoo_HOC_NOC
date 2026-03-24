@@ -105,7 +105,7 @@ function FruitMenu.Build(Main, ctx)
 
     local ScanBtn                   = Instance.new("TextButton", Main)
     ScanBtn.Size                    = UDim2.new(0.28, 0, 0, 20)
-    ScanBtn.Position                = UDim2.new(0.67, 0, 0, AUTOBUY_Y)
+    ScanBtn.Position                = UDim2.new(0.67, 0, 0, AUTOBUY_Y + 1)
     ScanBtn.BackgroundColor3        = cfg.Colors.Dark
     ScanBtn.BackgroundTransparency  = 0.15
     ScanBtn.Text                    = "SCAN"
