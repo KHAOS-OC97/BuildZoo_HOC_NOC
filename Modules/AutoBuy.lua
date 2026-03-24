@@ -165,6 +165,30 @@ local function updateDebugText(lines)
     end
 end
 
+local function reportRuntimeError(stage, err)
+    local message = tostring(err or "erro desconhecido")
+    local compact = message:gsub("%s+", " ")
+    _runtime.LastError = compact
+    updateDebugText({
+        "[ERR] " .. tostring(stage or "AutoBuy") .. " -> falha interna",
+        compact:sub(1, 220),
+    })
+    warn("[AutoBuy] " .. tostring(stage or "AutoBuy") .. " -> " .. message)
+end
+
+local function runProtected(stage, fn)
+    local ok, result = xpcall(fn, function(err)
+        return debug.traceback(tostring(err), 2)
+    end)
+
+    if not ok then
+        reportRuntimeError(stage, result)
+        return false, nil
+    end
+
+    return true, result
+end
+
 local function buildSelectedDebugLines(selected, found)
     local names = {}
     for fruitName in pairs(selected) do
@@ -1158,6 +1182,12 @@ function AutoBuy.Pulse()
     return tryGuiFallback(targets)
 end
 
+function AutoBuy.RunNow(reason)
+    return runProtected(reason or "Pulse manual", function()
+        return AutoBuy.Pulse()
+    end)
+end
+
 function AutoBuy.Init(ctx)
     _svc = ctx.Services
     _state = ctx.State
@@ -1172,11 +1202,17 @@ function AutoBuy.Init(ctx)
         LastRobuxModalScan = 0,
         RobuxGuardUntil = 0,
         LastRobuxGuardReason = nil,
+        LastError = nil,
         ProbeIndexByFruit = {},
         PreferredRemoteByFruit = {},
         NextTargetCursor = 1,
     }
     _runtime = _G.__HOC_RUNTIME.AutoBuy
+
+    updateDebugText({
+        "[INIT] AutoBuy carregado",
+        "[INFO] Aguardando ativacao",
+    })
 
     if _runtime.LoopStarted then return end
     _runtime.LoopStarted = true
@@ -1184,7 +1220,7 @@ function AutoBuy.Init(ctx)
     task.spawn(function()
         while _G_Running do
             if _G_AutoBuy then
-                pcall(function()
+                runProtected("Loop AutoBuy", function()
                     local now = os.clock()
                     local sweep = _cfg.AUTO_BUY_SILENT_SWEEP or 15
 

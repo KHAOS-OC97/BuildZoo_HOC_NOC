@@ -59,9 +59,9 @@ function FruitMenu.Build(Main, ctx)
         AutoBuyBtn.Text             = _G_AutoBuy and "AUTO BUY: ON"           or "AUTO BUY: OFF"
         AutoBuyBtn.BackgroundColor3 = _G_AutoBuy and cfg.Colors.Green or cfg.Colors.DarkRed
 
-        if _G_AutoBuy and AutoBuy and type(AutoBuy.Pulse) == "function" then
+        if _G_AutoBuy and AutoBuy and type(AutoBuy.RunNow) == "function" then
             task.spawn(function()
-                pcall(function() AutoBuy.Pulse() end)
+                AutoBuy.RunNow("Toggle AUTO BUY")
             end)
         end
     end)
