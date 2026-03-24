@@ -15,6 +15,7 @@ local _remoteCandidates = {}
 local _lastRemoteScan = 0
 local scoreRemoteCandidate
 local collectFruitShopRoots
+local collectFruitNamesForMatch
 local isRobuxButton
 local buttonIsSafeCoinTarget
 local dismissRobuxModal
@@ -713,7 +714,7 @@ collectFruitShopRoots = function(playerGui)
     return roots
 end
 
-local function collectFruitNamesForMatch(fruitName)
+collectFruitNamesForMatch = function(fruitName)
     local out = {}
     local seen = {}
 
