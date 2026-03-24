@@ -13,6 +13,7 @@ local _cachedShop = {}
 local _lastFullScan = 0
 local _remoteCandidates = {}
 local _lastRemoteScan = 0
+local scoreRemoteCandidate
 local isRobuxButton
 local buttonIsSafeCoinTarget
 local dismissRobuxModal
@@ -364,11 +365,13 @@ local function remoteMatchesAllowlistSpec(remote, spec)
 end
 
 local function collectApprovedRemotes()
-    local observed = collectObservedRemoteCandidates()
     local specs = getApprovedRemoteSpecs()
     if #specs == 0 then
-        return {}, observed
+        _remoteCandidates = {}
+        return {}, {}
     end
+
+    local observed = collectObservedRemoteCandidates()
 
     local approved = {}
     for _, remote in ipairs(observed) do
@@ -482,7 +485,7 @@ local function matchesFruitShopKeyword(name)
     return false
 end
 
-local function scoreRemoteCandidate(remote)
+scoreRemoteCandidate = function(remote)
     local score = 0
     local sig = normalize(remote:GetFullName() .. " " .. remote.Name)
 
@@ -1107,6 +1110,16 @@ end
 local function trySilentBuy(targets)
     if next(targets) == nil then return false, false end
     if robuxGuardActive() then return false, false end
+
+    local allowlistSpecs = getApprovedRemoteSpecs()
+    if #allowlistSpecs == 0 then
+        updateDebugText(buildSilentDebugLines(
+            targets,
+            nil,
+            "[SAFE] Allowlist vazia | [GUI] Hidden mode desativado"
+        ))
+        return false, false
+    end
 
     local approvedRemotes, observedRemotes = collectApprovedRemotes()
     if #approvedRemotes == 0 then
