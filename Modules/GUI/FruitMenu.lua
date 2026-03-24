@@ -15,9 +15,6 @@ local FruitMenu = {}
 local DROPDOWN_Y  = 367
 local AUTOBUY_Y   = 395
 local DEBUG_Y     = 423
-local DIAG_Y      = 515
-local MAIN_CLOSED_H = 520
-local MAIN_OPEN_H   = 760
 
 function FruitMenu.Build(Main, ctx)
     local cfg    = ctx.Config
@@ -55,30 +52,11 @@ function FruitMenu.Build(Main, ctx)
         return gradient
     end
 
-    local function addButtonGradient(target)
-        local gradient = Instance.new("UIGradient")
-        gradient.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(210, 210, 210)),
-        })
-        gradient.Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0.82),
-            NumberSequenceKeypoint.new(1, 0.96),
-        })
-        gradient.Rotation = 90
-        gradient.Parent = target
-        return gradient
-    end
-
     local function setDiagVisible(visible)
         state.AutoBuyDiagVisible = visible == true
         if stored.AutoBuyDiagPanel then
             stored.AutoBuyDiagPanel.Visible = state.AutoBuyDiagVisible
         end
-        local targetH = state.AutoBuyDiagVisible and MAIN_OPEN_H or MAIN_CLOSED_H
-        svc.TweenService:Create(Main, TweenInfo.new(0.18, Enum.EasingStyle.Quad), {
-            Size = UDim2.new(0, 230, 0, targetH)
-        }):Play()
         if stored.AutoBuyScanBtn then
             stored.AutoBuyScanBtn.Text = state.AutoBuyDiagVisible and "CLOSE" or "SCAN"
         end
@@ -154,11 +132,11 @@ function FruitMenu.Build(Main, ctx)
     ScanBtn.BackgroundTransparency  = 0.15
     ScanBtn.Text                    = "SCAN"
     ScanBtn.TextColor3              = cfg.Colors.White
+    ScanBtn.TextStrokeTransparency  = 0.75
     ScanBtn.Font                    = Enum.Font.GothamBold
     ScanBtn.TextSize                = 10
     Instance.new("UICorner", ScanBtn).CornerRadius = UDim.new(0, 6)
     stored.AutoBuyScanBtn = ScanBtn
-    addButtonGradient(ScanBtn)
     attachRGBStroke(ScanBtn, 1.4, 0.05)
 
     ScanBtn.MouseButton1Click:Connect(function()
@@ -200,13 +178,15 @@ function FruitMenu.Build(Main, ctx)
     DebugLabel.TextYAlignment          = Enum.TextYAlignment.Top
     stored.AutoBuyDebugLabel = DebugLabel
 
-    local DiagPanel                  = Instance.new("Frame", Main)
-    DiagPanel.Size                   = UDim2.new(0.9, 0, 0, 220)
-    DiagPanel.Position               = UDim2.new(0.05, 0, 0, DIAG_Y)
+    local DiagPanel                  = Instance.new("Frame", Main.Parent)
+    DiagPanel.Size                   = UDim2.new(0, 320, 0, 300)
+    DiagPanel.Position               = UDim2.new(Main.Position.X.Scale, Main.Position.X.Offset - 350, Main.Position.Y.Scale, Main.Position.Y.Offset + 20)
     DiagPanel.BackgroundColor3       = cfg.Colors.DarkMid
-    DiagPanel.BackgroundTransparency = 0.08
+    DiagPanel.BackgroundTransparency = 0.04
     DiagPanel.BorderSizePixel        = 0
     DiagPanel.Visible                = state.AutoBuyDiagVisible == true
+    DiagPanel.Active                 = true
+    DiagPanel.Draggable              = true
     Instance.new("UICorner", DiagPanel).CornerRadius = UDim.new(0, 6)
     stored.AutoBuyDiagPanel = DiagPanel
     addPanelGradient(DiagPanel)
@@ -221,6 +201,16 @@ function FruitMenu.Build(Main, ctx)
     DiagTitle.Font                   = Enum.Font.GothamBold
     DiagTitle.TextSize               = 10
     DiagTitle.TextXAlignment         = Enum.TextXAlignment.Left
+
+    local DiagClose                  = Instance.new("TextButton", DiagPanel)
+    DiagClose.Size                   = UDim2.new(0, 20, 0, 18)
+    DiagClose.Position               = UDim2.new(1, -24, 0, 3)
+    DiagClose.BackgroundTransparency = 1
+    DiagClose.Text                   = "×"
+    DiagClose.TextColor3             = cfg.Colors.White
+    DiagClose.TextStrokeTransparency = 0.75
+    DiagClose.Font                   = Enum.Font.GothamBold
+    DiagClose.TextSize               = 14
 
     local DiagMetaFrame                  = Instance.new("Frame", DiagPanel)
     DiagMetaFrame.Size                   = UDim2.new(0.5, -6, 0, 18)
@@ -251,7 +241,7 @@ function FruitMenu.Build(Main, ctx)
     stored.AutoBuyDiagTimeLabel = DiagTimeLabel
 
     local DiagActions                = Instance.new("Frame", DiagPanel)
-    DiagActions.Size                 = UDim2.new(1, -10, 0, 24)
+    DiagActions.Size                 = UDim2.new(1, -10, 0, 26)
     DiagActions.Position             = UDim2.new(0, 5, 0, 24)
     DiagActions.BackgroundTransparency = 1
 
@@ -262,12 +252,14 @@ function FruitMenu.Build(Main, ctx)
 
     local function makeDiagBtn(parent, text, color)
         local button                 = Instance.new("TextButton", parent)
-        button.Size                  = UDim2.new(0, 64, 1, 0)
+        button.Size                  = UDim2.new(0, 76, 1, 0)
         button.BackgroundColor3      = color
+        button.BackgroundTransparency = 0.08
         button.Text                  = text
         button.TextColor3            = cfg.Colors.White
+        button.TextStrokeTransparency = 0.75
         button.Font                  = Enum.Font.GothamBold
-        button.TextSize              = 10
+        button.TextSize              = 11
         button.AutoButtonColor       = true
         Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
         return button
@@ -276,23 +268,21 @@ function FruitMenu.Build(Main, ctx)
     local DiagScanBtn = makeDiagBtn(DiagActions, "SCAN", cfg.Colors.Gray)
     local DiagCopyBtn = makeDiagBtn(DiagActions, "COPY LOG", cfg.Colors.Green)
     local DiagClearBtn = makeDiagBtn(DiagActions, "CLEAR LOG", cfg.Colors.DarkRed)
-    DiagCopyBtn.Size = UDim2.new(0, 76, 1, 0)
-    DiagClearBtn.Size = UDim2.new(0, 84, 1, 0)
-    addButtonGradient(DiagScanBtn)
-    addButtonGradient(DiagCopyBtn)
-    addButtonGradient(DiagClearBtn)
+    DiagCopyBtn.Size = UDim2.new(0, 88, 1, 0)
+    DiagClearBtn.Size = UDim2.new(0, 94, 1, 0)
     attachRGBStroke(DiagScanBtn, 1.2, 0.08)
     attachRGBStroke(DiagCopyBtn, 1.2, 0.08)
     attachRGBStroke(DiagClearBtn, 1.2, 0.08)
 
     local DiagScroll                  = Instance.new("ScrollingFrame", DiagPanel)
-    DiagScroll.Size                   = UDim2.new(1, -10, 1, -56)
+    DiagScroll.Size                   = UDim2.new(1, -10, 1, -58)
     DiagScroll.Position               = UDim2.new(0, 5, 0, 50)
     DiagScroll.BackgroundColor3       = cfg.Colors.Dark
     DiagScroll.BackgroundTransparency = 0.2
     DiagScroll.BorderSizePixel        = 0
     DiagScroll.ScrollBarThickness     = 6
     DiagScroll.AutomaticCanvasSize    = Enum.AutomaticSize.Y
+    DiagScroll.CanvasSize             = UDim2.new(0, 0, 0, 0)
     Instance.new("UICorner", DiagScroll).CornerRadius = UDim.new(0, 6)
     addPanelGradient(DiagScroll)
     attachRGBStroke(DiagScroll, 1.1, 0.18)
@@ -307,10 +297,14 @@ function FruitMenu.Build(Main, ctx)
     DiagLogLabel.Font                    = Enum.Font.Code
     DiagLogLabel.TextSize                = 10
     DiagLogLabel.RichText                = true
-    DiagLogLabel.TextWrapped             = true
+    DiagLogLabel.TextWrapped             = false
     DiagLogLabel.TextXAlignment          = Enum.TextXAlignment.Left
     DiagLogLabel.TextYAlignment          = Enum.TextYAlignment.Top
     stored.AutoBuyDiagLogLabel = DiagLogLabel
+
+    DiagClose.MouseButton1Click:Connect(function()
+        setDiagVisible(false)
+    end)
 
     DiagScanBtn.MouseButton1Click:Connect(function()
         if AutoBuy and type(AutoBuy.DebugScan) == "function" then
