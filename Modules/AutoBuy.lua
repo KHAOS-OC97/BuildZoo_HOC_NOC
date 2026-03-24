@@ -14,6 +14,7 @@ local _lastFullScan = 0
 local _remoteCandidates = {}
 local _lastRemoteScan = 0
 local scoreRemoteCandidate
+local collectFruitShopRoots
 local isRobuxButton
 local buttonIsSafeCoinTarget
 local dismissRobuxModal
@@ -365,33 +366,47 @@ local function buildScannerLines()
         return lines
     end
 
-    local roots = collectFruitShopRoots(pg)
-    table.insert(lines, "[SCAN] roots da loja: " .. tostring(#roots))
-    local rootLimit = math.min(#roots, 6)
-    for i = 1, rootLimit do
-        table.insert(lines, string.format("[ROOT %02d] %s", i, getObjectLabel(roots[i])))
-    end
+    local guiOk, guiErr = pcall(function()
+        local roots = collectFruitShopRoots and collectFruitShopRoots(pg) or {}
+        table.insert(lines, "[SCAN] roots da loja: " .. tostring(#roots))
+        local rootLimit = math.min(#roots, 6)
+        for i = 1, rootLimit do
+            table.insert(lines, string.format("[ROOT %02d] %s", i, getObjectLabel(roots[i])))
+        end
 
-    local buttonCount = 0
-    for _, obj in ipairs(pg:GetDescendants()) do
-        if isGuiButton(obj) and isElementVisible(obj) then
-            local nameSig = normalize(obj.Name)
-            if nameSig == "buybutton" or nameSig == "robuxbuybutton" then
-                buttonCount = buttonCount + 1
-                if buttonCount <= 12 then
-                    table.insert(lines, string.format(
-                        "[BTN %02d] %s | text=%s | safe=%s | robux=%s",
-                        buttonCount,
-                        getObjectLabel(obj),
-                        tostring(getGuiText(obj)),
-                        tostring(buttonIsSafeCoinTarget and buttonIsSafeCoinTarget(obj) or false),
-                        tostring(isRobuxButton and isRobuxButton(obj) or false)
-                    ))
+        local buttonCount = 0
+        for _, obj in ipairs(pg:GetDescendants()) do
+            if isGuiButton(obj) and isElementVisible(obj) then
+                local nameSig = normalize(obj.Name)
+                if nameSig == "buybutton" or nameSig == "robuxbuybutton" then
+                    buttonCount = buttonCount + 1
+                    if buttonCount <= 12 then
+                        local safe = false
+                        local robux = false
+                        pcall(function()
+                            safe = buttonIsSafeCoinTarget and buttonIsSafeCoinTarget(obj) or false
+                        end)
+                        pcall(function()
+                            robux = isRobuxButton and isRobuxButton(obj) or false
+                        end)
+                        table.insert(lines, string.format(
+                            "[BTN %02d] %s | text=%s | safe=%s | robux=%s",
+                            buttonCount,
+                            getObjectLabel(obj),
+                            tostring(getGuiText(obj)),
+                            tostring(safe),
+                            tostring(robux)
+                        ))
+                    end
                 end
             end
         end
+        table.insert(lines, "[SCAN] botoes Buy/Robux visiveis: " .. tostring(buttonCount))
+    end)
+
+    if not guiOk then
+        table.insert(lines, "[SCAN-ERR] GUI scanner falhou: " .. tostring(guiErr))
     end
-    table.insert(lines, "[SCAN] botoes Buy/Robux visiveis: " .. tostring(buttonCount))
 
     return lines
 end
@@ -627,7 +642,7 @@ local function collectTargetBatch(targets)
     return out
 end
 
-local function collectFruitShopRoots(playerGui)
+collectFruitShopRoots = function(playerGui)
     local roots = {}
     local seen = {}
 
