@@ -208,6 +208,21 @@ local function buildSilentDebugLines(selected, statusByFruit, extraLine)
     return lines
 end
 
+local function summarizeRemoteCandidates(remotes)
+    if not remotes or #remotes == 0 then
+        return "[NO] Nenhum remote candidato"
+    end
+
+    local parts = {}
+    local limit = math.min(#remotes, 3)
+    for i = 1, limit do
+        local label = remotes[i] and remotes[i].Name or "?"
+        table.insert(parts, tostring(label))
+    end
+
+    return "[REMOTES] " .. tostring(#remotes) .. " -> " .. table.concat(parts, ", ")
+end
+
 local function matchesFruitShopKeyword(name)
     local sig = normalize(name)
     for _, kw in ipairs(_cfg.FRUIT_SHOP_KEYWORDS or {}) do
@@ -836,7 +851,22 @@ local function refreshRemoteCandidates()
     local candidates = {}
     local containers = {
         game:GetService("ReplicatedStorage"),
+        game:GetService("ReplicatedFirst"),
+        game:GetService("Workspace"),
     }
+
+    local localPlayer = _svc and _svc.LocalPlayer or nil
+    if localPlayer then
+        table.insert(containers, localPlayer)
+        local playerGui = localPlayer:FindFirstChild("PlayerGui")
+        if playerGui then
+            table.insert(containers, playerGui)
+        end
+        local playerScripts = localPlayer:FindFirstChild("PlayerScripts")
+        if playerScripts then
+            table.insert(containers, playerScripts)
+        end
+    end
 
     for _, root in ipairs(containers) do
         for _, obj in ipairs(root:GetDescendants()) do
@@ -965,6 +995,7 @@ local function trySilentBuy(targets)
     local probeBudget = math.max(1, tonumber(_cfg.AUTO_BUY_MAX_PROBES_PER_FRUIT) or 6)
     local yieldEvery = math.max(1, tonumber(_cfg.AUTO_BUY_INVOKE_YIELD_EVERY) or 8)
     local targetBatch = collectTargetBatch(targets)
+    updateDebugText(buildSilentDebugLines(targets, statusByFruit, "[HIDDEN] Pulso iniciado | " .. summarizeRemoteCandidates(remotes)))
 
     for _, fruitName in ipairs(targetBatch) do
         local lastSuccess = _runtime.LastPurchaseAttempt[fruitName] or 0
