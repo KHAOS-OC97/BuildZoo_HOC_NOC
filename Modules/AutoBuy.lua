@@ -345,7 +345,15 @@ end
 
 local function buildScannerLines()
     local lines = {}
-    local remotes = collectObservedRemoteCandidates(true)
+    local remotes = {}
+    local remotesOk, remotesResult = pcall(function()
+        return collectObservedRemoteCandidates(true)
+    end)
+    if remotesOk and type(remotesResult) == "table" then
+        remotes = remotesResult
+    else
+        table.insert(lines, "[SCAN-ERR] remotes scanner falhou: " .. tostring(remotesResult))
+    end
     table.insert(lines, "[SCAN] remotes candidatos: " .. tostring(#remotes))
 
     local remoteLimit = math.min(#remotes, 12)
@@ -367,7 +375,39 @@ local function buildScannerLines()
     end
 
     local guiOk, guiErr = pcall(function()
-        local roots = collectFruitShopRoots and collectFruitShopRoots(pg) or {}
+        local function scannerVisible(element)
+            if not element or not element.Parent then return false end
+
+            local current = element
+            while current do
+                if current:IsA("GuiObject") and current.Visible == false then
+                    return false
+                end
+                if current:IsA("ScreenGui") and current.Enabled == false then
+                    return false
+                end
+                current = current.Parent
+            end
+            return true
+        end
+
+        local roots = {}
+        local seenRoots = {}
+        for _, obj in ipairs(pg:GetDescendants()) do
+            if scannerVisible(obj) then
+                local sig = normalize(obj.Name)
+                for _, kw in ipairs(_cfg.FRUIT_SHOP_KEYWORDS or {}) do
+                    if sig:find(normalize(kw), 1, true) then
+                        if not seenRoots[obj] then
+                            seenRoots[obj] = true
+                            table.insert(roots, obj)
+                        end
+                        break
+                    end
+                end
+            end
+        end
+
         table.insert(lines, "[SCAN] roots da loja: " .. tostring(#roots))
         local rootLimit = math.min(#roots, 6)
         for i = 1, rootLimit do
@@ -376,7 +416,8 @@ local function buildScannerLines()
 
         local buttonCount = 0
         for _, obj in ipairs(pg:GetDescendants()) do
-            if isGuiButton(obj) and isElementVisible(obj) then
+            local isButton = obj and (obj:IsA("TextButton") or obj:IsA("ImageButton"))
+            if isButton and scannerVisible(obj) then
                 local nameSig = normalize(obj.Name)
                 if nameSig == "buybutton" or nameSig == "robuxbuybutton" then
                     buttonCount = buttonCount + 1
