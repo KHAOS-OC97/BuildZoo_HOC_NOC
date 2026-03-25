@@ -187,6 +187,14 @@ function Emotes.Init(ctx)
     gui.DisplayOrder = 999
     emoteGui = gui
 
+    -- Hotkey dedicada: G abre/fecha apenas o painel de emotes.
+    UserInputService.InputBegan:Connect(function(input, processed)
+        if processed or UserInputService:GetFocusedTextBox() then return end
+        if input.KeyCode == Enum.KeyCode.G then
+            Emotes.Toggle()
+        end
+    end)
+
     local function createCorner(parent, cornerRadius)
         local corner = Instance.new("UICorner")
         corner.CornerRadius = UDim.new(0, cornerRadius)
