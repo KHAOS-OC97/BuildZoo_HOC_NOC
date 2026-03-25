@@ -11,6 +11,8 @@
 local GITHUB_RAW_BASE =
     "https://raw.githubusercontent.com/KHAOS-OC97/BuildZoo_HOC_NOC/main/"
 
+local CACHE_BUSTER = tostring(os.time())
+
 -- ── Whitelist Security Check ──────────────────────────────────────────────────
 do
     local ALLOWED_USERS = { ["KChaos97"] = true, ["CKhaos79"] = true }
@@ -90,7 +92,8 @@ end
 
 -- Baixa e executa um módulo remoto; devolve a tabela retornada pelo módulo
 local function loadModule(relPath)
-    local url = GITHUB_RAW_BASE .. relPath
+    local sep = relPath:find("?", 1, true) and "&" or "?"
+    local url = GITHUB_RAW_BASE .. relPath .. sep .. "v=" .. CACHE_BUSTER
     local src, compileErr, result
 
     local ok = pcall(function()
