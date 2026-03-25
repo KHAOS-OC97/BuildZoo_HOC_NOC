@@ -109,6 +109,17 @@ function Buttons.Build(Main, ctx)
         ServerHop.Hop()
     end)
 
+    -- ── Emotes ────────────────────────────────────────────────────────────────
+    local Emotes = ctx.Emotes
+    local EmoteBtn = addBtn("EMOTE", BTN_START + BTN_STEP * 5)
+    stored.EmoteBtn = EmoteBtn
+    EmoteBtn.MouseButton1Click:Connect(function()
+        if Emotes and type(Emotes.Toggle) == "function" then
+            Emotes.Toggle()
+            EmoteBtn.Text = Emotes.IsOpen() and "EMOTE: ON" or "EMOTE"
+        end
+    end)
+
     -- ── Loop RGB dos strokes ──────────────────────────────────────────────────
     task.spawn(function()
         while _G_Running do
