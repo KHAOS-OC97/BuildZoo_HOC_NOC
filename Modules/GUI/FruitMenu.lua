@@ -10,9 +10,10 @@
 
 local FruitMenu = {}
 
--- Botões de ação terminam em ~335px (207 + 32*4 = 335)
-local DROPDOWN_Y  = 367
-local AUTOBUY_Y   = 395
+-- Botões de ação agora incluem o EMOTE em 367px.
+-- Mantemos a seção de frutas abaixo dele para evitar sobreposição.
+local DROPDOWN_Y  = 399
+local AUTOBUY_Y   = 427
 
 function FruitMenu.Build(Main, ctx)
     local cfg    = ctx.Config

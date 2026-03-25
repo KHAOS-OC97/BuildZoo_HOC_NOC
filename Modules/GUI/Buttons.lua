@@ -1,13 +1,15 @@
 --[[
-    GUI/Buttons.lua — Botões de ação: WalkSpeed, Loja de Frutas, Server Hop e TP.
+    GUI/Buttons.lua — Botões de ação do painel principal.
 
-    Build(Main, ctx) cria os 4 botões com borda RGB e conecta os callbacks
-    aos módulos Movement, ServerHop e Teleport já inicializados em ctx.
+    Build(Main, ctx) cria os botões de WalkSpeed, Loja de Frutas, TP,
+    Big Pets, Server Hop e EMOTE com borda RGB e conecta os callbacks
+    aos módulos já inicializados em ctx.
 ]]
 
 local Buttons = {}
 
 -- Posições absolutas em pixels: toggles terminam em ~200px, botões começam em 207px
+-- O último botão (EMOTE) fica em 367px, então a seção FruitMenu deve começar abaixo disso.
 local BTN_START = 207
 local BTN_STEP  = 32
 
