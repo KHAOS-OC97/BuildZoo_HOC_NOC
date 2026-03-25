@@ -361,7 +361,9 @@ function Emotes.Init(ctx)
     savedEmptyLabel.Font = Enum.Font.GothamBold
     savedEmptyLabel.TextScaled = true
     savedEmptyLabel.Visible = false
-    savedEmptyLabel.Parent = savedScroll = Instance.new("UIGridLayout")
+    savedEmptyLabel.Parent = savedScroll
+
+    local savedLayout = Instance.new("UIGridLayout")
     savedLayout.CellSize = UDim2.new(0, scale("X", 120), 0, scale("Y", 200))
     savedLayout.CellPadding = UDim2.new(0, scale("X", 8), 0, scale("Y", 8))
     savedLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -381,7 +383,9 @@ function Emotes.Init(ctx)
     settingsTitle.TextColor3 = C.White
     settingsTitle.Font = Enum.Font.GothamBold
     settingsTitle.TextScaled = true
-    settingsTitle.Parent = settingsFrame = Instance.new("ScrollingFrame")
+    settingsTitle.Parent = settingsFrame
+
+    local scrollFrame = Instance.new("ScrollingFrame")
     scrollFrame.Size = UDim2.new(1, -scale("X", 20), 1, -scale("Y", 40))
     scrollFrame.Position = UDim2.new(0, scale("X", 10), 0, scale("Y", 30))
     scrollFrame.BackgroundTransparency = 1
