@@ -16,10 +16,60 @@ local function ensureRuntime()
         HeartbeatConn = nil,
         WatchdogRunning = false,
         LastPulseAt = 0,
-        LastToggleState = false,
+        LastToggleState = false, -- Usado para saber quando criar/destruir a caixa
     }
     _runtime = _G.__HOC_RUNTIME.AntiAFK
 end
+
+-- ==========================================
+-- SISTEMA DA CAIXA ANTI-AFK
+-- ==========================================
+local function manageAFKBox(shouldBeActive)
+    local boxName = "HOC_AntiAFK_Box"
+    local boxFolder = workspace:FindFirstChild(boxName)
+
+    -- Se o Anti-AFK desligou, destruímos a caixa
+    if not shouldBeActive then
+        if boxFolder then boxFolder:Destroy() end
+        return
+    end
+
+    -- Se já existe uma caixa, não cria outra
+    if boxFolder then return end
+
+    local char = _svc.LocalPlayer and _svc.LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    -- Criamos a pasta para organizar as paredes
+    boxFolder = Instance.new("Folder")
+    boxFolder.Name = boxName
+    boxFolder.Parent = workspace
+
+    -- Função auxiliar para criar cada parede
+    local function createWall(size, offset)
+        local part = Instance.new("Part")
+        part.Size = size
+        part.CFrame = root.CFrame * offset
+        part.Anchored = true
+        part.CanCollide = true
+        part.Transparency = 0.5
+        part.Material = Enum.Material.ForceField -- Visual estiloso de campo de força
+        part.Color = Color3.fromRGB(0, 255, 255) -- Cor Ciano
+        part.CanQuery = false
+        part.Parent = boxFolder
+    end
+
+    local w, h, t = 5, 7, 1 -- Largura, Altura, Espessura
+
+    createWall(Vector3.new(w, t, w), CFrame.new(0, -h/2, 0)) -- Chão
+    createWall(Vector3.new(w, t, w), CFrame.new(0, h/2, 0))  -- Teto
+    createWall(Vector3.new(w, h, t), CFrame.new(0, 0, -w/2)) -- Frente
+    createWall(Vector3.new(w, h, t), CFrame.new(0, 0, w/2))  -- Trás
+    createWall(Vector3.new(t, h, w), CFrame.new(-w/2, 0, 0)) -- Esquerda
+    createWall(Vector3.new(t, h, w), CFrame.new(w/2, 0, 0))  -- Direita
+end
+-- ==========================================
 
 local function now()
     local ok, value = pcall(function()
@@ -144,63 +194,30 @@ function AntiAFK.Init(ctx)
 
     if _runtime.IdledConn then
         pcall(function() _runtime.IdledConn:Disconnect() end)
-    -- ==========================================
-    -- SISTEMA DA CAIXA ANTI-AFK
-    -- ==========================================
-    local function manageAFKBox(shouldBeActive)
-        local boxName = "HOC_AntiAFK_Box"
-        local boxFolder = workspace:FindFirstChild(boxName)
-
-        -- Se o Anti-AFK desligou, destruímos a caixa
-        if not shouldBeActive then
-            if boxFolder then boxFolder:Destroy() end
-            return
-        end
-
-        -- Se já existe uma caixa, não cria outra
-        if boxFolder then return end
-
-        local char = _svc.LocalPlayer and _svc.LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-
-        -- Criamos a pasta para organizar as paredes
-        boxFolder = Instance.new("Folder")
-        boxFolder.Name = boxName
-        boxFolder.Parent = workspace
-
-        -- Função auxiliar para criar cada parede
-        local function createWall(size, offset)
-            local part = Instance.new("Part")
-            part.Size = size
-            part.CFrame = root.CFrame * offset
-            part.Anchored = true
-            part.CanCollide = true
-            part.Transparency = 0.5
-            part.Material = Enum.Material.ForceField -- Visual estiloso de campo de força
-            part.Color = Color3.fromRGB(0, 255, 255) -- Cor Ciano
-            part.CanQuery = false
-            part.Parent = boxFolder
-        end
-
-        local w, h, t = 5, 7, 1 -- Largura, Altura, Espessura
-
-        createWall(Vector3.new(w, t, w), CFrame.new(0, -h/2, 0)) -- Chão
-        createWall(Vector3.new(w, t, w), CFrame.new(0, h/2, 0))  -- Teto
-        createWall(Vector3.new(w, h, t), CFrame.new(0, 0, -w/2)) -- Frente
-        createWall(Vector3.new(w, h, t), CFrame.new(0, 0, w/2))  -- Trás
-        createWall(Vector3.new(t, h, w), CFrame.new(-w/2, 0, 0)) -- Esquerda
-        createWall(Vector3.new(t, h, w), CFrame.new(w/2, 0, 0))  -- Direita
-    end
-    -- ==========================================
-
     end
 
     _runtime.IdledConn = _svc.LocalPlayer.Idled:Connect(function()
         doAntiIdlePulse()
     end)
 
-    ensureHeartbeat()
+    -- Heartbeat agora também gerencia a caixa
+    if _runtime.HeartbeatConn then
+        pcall(function() _runtime.HeartbeatConn:Disconnect() end)
+    end
+    _runtime.HeartbeatConn = _svc.RunService.Heartbeat:Connect(function()
+        if not _G_Running then return end
+        -- Verifica se o estado do Anti-AFK mudou para criar/destruir a caixa
+        if _runtime.LastToggleState ~= _G_AntiAFK then
+            _runtime.LastToggleState = _G_AntiAFK
+            manageAFKBox(_G_AntiAFK)
+        end
+        if not _G_AntiAFK then return end
+        local current = now()
+        if current - (_runtime.LastPulseAt or 0) >= 15 then
+            doAntiIdlePulse()
+        end
+    end)
+
     bindCurrentCharacter()
 
     if not _runtime.WatchdogRunning then
@@ -212,34 +229,23 @@ function AntiAFK.Init(ctx)
                 end
                 task.wait(20)
             end
-
+            -- Limpeza quando parar de rodar
+            manageAFKBox(false)
             if _runtime and _runtime.HeartbeatConn then
                 pcall(function() _runtime.HeartbeatConn:Disconnect() end)
                 _runtime.HeartbeatConn = nil
             end
-
             if _runtime and _runtime.IdledConn then
                 pcall(function() _runtime.IdledConn:Disconnect() end)
                 _runtime.IdledConn = nil
-
-                if _runtime and _runtime.HeartbeatConn then
-                    pcall(function() _runtime.HeartbeatConn:Disconnect() end)
-                    _runtime.HeartbeatConn = nil
-                end
-
-                if _runtime and _runtime.IdledConn then
-                    pcall(function() _runtime.IdledConn:Disconnect() end)
-                    _runtime.IdledConn = nil
-                end
-
-                _runtime.WatchdogRunning = false
             end
-
             _runtime.WatchdogRunning = false
         end)
     end
 
     if _G_AntiAFK then
+        _runtime.LastToggleState = true
+        manageAFKBox(true)
         doAntiIdlePulse()
     end
 end
