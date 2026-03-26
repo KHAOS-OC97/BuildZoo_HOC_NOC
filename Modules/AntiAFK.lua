@@ -1,9 +1,4 @@
-    AntiAFK.lua — Sistema Anti-AFK.
-
-    Init(ctx) conecta o evento Idled do LocalPlayer.
-    Ping()    é chamado periodicamente pelo loop monitor em Main.lua.
-]]
-
+--[[
     AntiAFK.lua — Sistema Anti-AFK com Caixa de Contenção.
 
     Init(ctx) conecta o evento Idled do LocalPlayer.
