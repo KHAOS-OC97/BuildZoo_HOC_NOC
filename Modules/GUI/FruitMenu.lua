@@ -122,11 +122,34 @@ function FruitMenu.Build(Main, ctx)
         end
     end)
 
-    local CollectCoinBtn            = makeRGBButton("COLLECT COIN", LEFT_X, COLLECT_Y, FULL_W)
+    local CollectCoin = nil
+    pcall(function() CollectCoin = require(script.Parent.Parent.CollectCoin) end)
+    local CollectCoinBtn            = makeRGBButton("COLLECT COIN: OFF", LEFT_X, COLLECT_Y, FULL_W)
     CollectCoinBtn.TextSize         = 11
     stored.CollectCoinBtn = CollectCoinBtn
+    local autoCollectActive = _G_AutoCollect or false
+    local autoCollectThread = nil
+    local function setCollectBtnState(active)
+        CollectCoinBtn.Text = active and "COLLECT COIN: ON" or "COLLECT COIN: OFF"
+        CollectCoinBtn.BackgroundColor3 = active and Color3.fromRGB(0, 100, 0) or cfg.Colors.Dark
+    end
+    setCollectBtnState(autoCollectActive)
     CollectCoinBtn.MouseButton1Click:Connect(function()
-        warn("[HOC NOC] COLLECT COIN ainda sem acao definida.")
+        autoCollectActive = not autoCollectActive
+        _G_AutoCollect = autoCollectActive
+        setCollectBtnState(autoCollectActive)
+        if autoCollectActive then
+            if CollectCoin and type(CollectCoin.CollectAll) == "function" then
+                autoCollectThread = task.spawn(function()
+                    while autoCollectActive and _G_Running do
+                        CollectCoin.CollectAll()
+                        task.wait(1)
+                    end
+                end)
+            end
+        else
+            -- Thread será interrompida naturalmente pelo flag
+        end
     end)
 
     local DiagPanel                  = Instance.new("Frame", Main.Parent)
