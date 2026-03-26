@@ -50,6 +50,15 @@ local function clearFlightState()
     _runtime.Keys = {}
 end
 
+local function getFlightSpeed()
+    local walkSpeed = tonumber(_G_WalkSpeed)
+    if walkSpeed and walkSpeed > 0 then
+        return walkSpeed * 2
+    end
+
+    return _cfg.FLY_SPEED or 70
+end
+
 local function getMoveDirection(cameraCFrame)
     local flatLook = Vector3.new(cameraCFrame.LookVector.X, 0, cameraCFrame.LookVector.Z)
     local flatRight = Vector3.new(cameraCFrame.RightVector.X, 0, cameraCFrame.RightVector.Z)
@@ -81,6 +90,7 @@ local function detachFlight()
     local _, hum, root = getCharacterParts()
     setFlightState(hum, false)
     _runtime.Active = false
+    _runtime.TargetPosition = nil
 
     if root then
         pcall(function()
@@ -100,8 +110,9 @@ local function updateFlight(dt)
     local cameraCFrame = camera and camera.CFrame or root.CFrame
 
     local direction = getMoveDirection(cameraCFrame)
-    local speed = (_cfg.FLY_SPEED or 70) * math.max(dt or 0.016, 0.016)
-    local nextPosition = root.Position + (direction * speed)
+    local speed = getFlightSpeed() * math.max(dt or 0.016, 0.016)
+    local targetPosition = _runtime.TargetPosition or root.Position
+    local nextPosition = targetPosition + (direction * speed)
     local facing = Vector3.new(cameraCFrame.LookVector.X, 0, cameraCFrame.LookVector.Z)
 
     if facing.Magnitude <= 0 then
@@ -115,6 +126,7 @@ local function updateFlight(dt)
 
     setFlightState(hum, true)
     _runtime.Active = true
+    _runtime.TargetPosition = nextPosition
 
     pcall(function()
         root.AssemblyLinearVelocity = ZERO
@@ -138,6 +150,7 @@ function Fly.Init(ctx)
         ToggleBound = false,
         Keys = {},
         Active = false,
+        TargetPosition = nil,
     }
     _runtime = _G.__HOC_RUNTIME.Fly
 
@@ -205,6 +218,7 @@ function Fly.Init(ctx)
 
     _runtime.CharConn = _svc.LocalPlayer.CharacterAdded:Connect(function()
         _runtime.Active = false
+        _runtime.TargetPosition = nil
         clearFlightState()
 
         if _G_Fly then
@@ -229,6 +243,8 @@ function Fly.Toggle()
     syncFlyButton()
 
     if _G_Fly then
+        local _, _, root = getCharacterParts()
+        _runtime.TargetPosition = root and root.Position or nil
         updateFlight(0.016)
     else
         detachFlight()
