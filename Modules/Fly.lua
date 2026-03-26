@@ -27,20 +27,6 @@ local function getCharacterParts()
     return char, hum, root
 end
 
-local function clearBodyMovers()
-    if not _runtime then return end
-
-    if _runtime.BodyVelocity then
-        pcall(function() _runtime.BodyVelocity:Destroy() end)
-        _runtime.BodyVelocity = nil
-    end
-
-    if _runtime.BodyGyro then
-        pcall(function() _runtime.BodyGyro:Destroy() end)
-        _runtime.BodyGyro = nil
-    end
-end
-
 local function setFlightState(hum, enabled)
     if not hum then return end
 
@@ -51,52 +37,12 @@ local function setFlightState(hum, enabled)
     end)
 end
 
-local function detachFlight()
-    local _, hum, root = getCharacterParts()
-    clearBodyMovers()
-
-    setFlightState(hum, false)
-
-    if root then
-        pcall(function() root.AssemblyLinearVelocity = ZERO end)
-    end
+local function clearFlightState()
+    if not _runtime then return end
+    _runtime.Keys = {}
 end
 
-local function attachFlight(root)
-    clearBodyMovers()
-
-    local bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.Name = "HOCNOC_FlyVelocity"
-    bodyVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-    bodyVelocity.P = 10000
-    bodyVelocity.Velocity = ZERO
-    bodyVelocity.Parent = root
-
-    local bodyGyro = Instance.new("BodyGyro")
-    bodyGyro.Name = "HOCNOC_FlyGyro"
-    bodyGyro.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
-    bodyGyro.P = 9000
-    bodyGyro.D = 500
-    bodyGyro.CFrame = root.CFrame
-    bodyGyro.Parent = root
-
-    _runtime.BodyVelocity = bodyVelocity
-    _runtime.BodyGyro = bodyGyro
-end
-
-local function updateFlight()
-    if not _G_Fly then return end
-
-    local _, hum, root = getCharacterParts()
-    if not hum or not root then return end
-
-    if not _runtime.BodyVelocity or _runtime.BodyVelocity.Parent ~= root then
-        attachFlight(root)
-    end
-
-    local camera = workspace.CurrentCamera
-    local cameraCFrame = camera and camera.CFrame or root.CFrame
-
+local function getMoveDirection(cameraCFrame)
     local flatLook = Vector3.new(cameraCFrame.LookVector.X, 0, cameraCFrame.LookVector.Z)
     local flatRight = Vector3.new(cameraCFrame.RightVector.X, 0, cameraCFrame.RightVector.Z)
 
@@ -114,18 +60,47 @@ local function updateFlight()
     if _runtime.Keys[Enum.KeyCode.D] then direction = direction + flatRight end
     if _runtime.Keys[Enum.KeyCode.A] then direction = direction - flatRight end
     if _runtime.Keys[Enum.KeyCode.Space] then direction = direction + UP end
-    if _runtime.Keys[Enum.KeyCode.LeftShift] then
-        direction = direction - UP
-    end
+    if _runtime.Keys[Enum.KeyCode.LeftShift] then direction = direction - UP end
 
     if direction.Magnitude > 0 then
-        direction = direction.Unit * (_cfg.FLY_SPEED or 70)
+        direction = direction.Unit
     end
 
-    _runtime.BodyVelocity.Velocity = direction
-    _runtime.BodyGyro.CFrame = CFrame.lookAt(root.Position, root.Position + cameraCFrame.LookVector)
+    return direction
+end
+
+local function detachFlight()
+    local _, hum, root = getCharacterParts()
+    setFlightState(hum, false)
+
+    if root then
+        pcall(function()
+            root.AssemblyLinearVelocity = ZERO
+            root.AssemblyAngularVelocity = ZERO
+        end)
+    end
+end
+
+local function updateFlight(dt)
+    if not _G_Fly then return end
+
+    local _, hum, root = getCharacterParts()
+    if not hum or not root then return end
+
+    local camera = workspace.CurrentCamera
+    local cameraCFrame = camera and camera.CFrame or root.CFrame
+
+    local direction = getMoveDirection(cameraCFrame)
+    local speed = (_cfg.FLY_SPEED or 70) * math.max(dt or 0.016, 0.016)
+    local nextPosition = root.Position + (direction * speed)
 
     setFlightState(hum, true)
+
+    pcall(function()
+        root.AssemblyLinearVelocity = ZERO
+        root.AssemblyAngularVelocity = ZERO
+        root.CFrame = CFrame.lookAt(nextPosition, nextPosition + cameraCFrame.LookVector)
+    end)
 end
 
 function Fly.Init(ctx)
@@ -138,8 +113,6 @@ function Fly.Init(ctx)
         InputBeganConn = nil,
         InputEndedConn = nil,
         CharConn = nil,
-        BodyVelocity = nil,
-        BodyGyro = nil,
         Keys = {},
     }
     _runtime = _G.__HOC_RUNTIME.Fly
@@ -149,8 +122,7 @@ function Fly.Init(ctx)
     if _runtime.InputEndedConn then pcall(function() _runtime.InputEndedConn:Disconnect() end) end
     if _runtime.CharConn then pcall(function() _runtime.CharConn:Disconnect() end) end
 
-    clearBodyMovers()
-    _runtime.Keys = {}
+    clearFlightState()
 
     _runtime.InputBeganConn = _svc.UserInputService.InputBegan:Connect(function(input, processed)
         if processed or _svc.UserInputService:GetFocusedTextBox() then return end
@@ -161,47 +133,48 @@ function Fly.Init(ctx)
         _runtime.Keys[input.KeyCode] = nil
     end)
 
-    _runtime.HeartbeatConn = _svc.RunService.Heartbeat:Connect(function()
+    _runtime.HeartbeatConn = _svc.RunService.Heartbeat:Connect(function(dt)
         if not _G_Running then
             if _G_Fly then
                 _G_Fly = false
-                _runtime.Keys = {}
+                clearFlightState()
                 detachFlight()
             end
             return
         end
 
         if _G_Fly then
-            updateFlight()
-        elseif _runtime.BodyVelocity or _runtime.BodyGyro then
+            updateFlight(dt)
+        else
             detachFlight()
         end
     end)
 
     _runtime.CharConn = _svc.LocalPlayer.CharacterAdded:Connect(function()
-        clearBodyMovers()
-        _runtime.Keys = {}
+        clearFlightState()
 
         if _G_Fly then
             task.delay(0.15, function()
                 if _G_Fly and _G_Running then
-                    updateFlight()
+                    updateFlight(0.016)
                 end
             end)
         end
     end)
 
     if _G_Fly then
-        task.defer(updateFlight)
+        task.defer(function()
+            updateFlight(0.016)
+        end)
     end
 end
 
 function Fly.Toggle()
     _G_Fly = not _G_Fly
-    _runtime.Keys = {}
+    clearFlightState()
 
     if _G_Fly then
-        updateFlight()
+        updateFlight(0.016)
     else
         detachFlight()
     end

@@ -33,6 +33,7 @@ end
 
 function Buttons.Build(Main, ctx)
     local cfg       = ctx.Config
+    local svc       = ctx.Services
     local state     = ctx.State
     local stored    = state.Stored
     local Movement  = ctx.Movement
