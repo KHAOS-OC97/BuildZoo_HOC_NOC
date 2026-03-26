@@ -12,7 +12,7 @@ local FruitMenu = {}
 
 local BASE_ROW_Y   = 270
 local ROW_GAP      = 36
-local AUTOBUY_Y    = BASE_ROW_Y + 30 -- Desce mais para centralizar perfeitamente
+local AUTOBUY_Y    = BASE_ROW_Y + 32 -- Desce mais para centralizar perfeitamente
 local EXTRA_ROW_Y  = BASE_ROW_Y + ROW_GAP
 local BASES_ROW_Y  = BASE_ROW_Y + ROW_GAP * 2
 local ACTION_ROW_Y = BASE_ROW_Y + ROW_GAP * 3
