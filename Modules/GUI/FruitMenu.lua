@@ -122,17 +122,7 @@ function FruitMenu.Build(Main, ctx)
         end
     end)
 
-    local CollectCoin = nil
-    do
-        local ok
-        ok, CollectCoin = pcall(function()
-            return require(script.Parent.Parent:WaitForChild("CollectCoin"))
-        end)
-        if not ok then
-            warn("[HOC NOC] Falha ao require CollectCoin módulo, coletor não ficará disponível.")
-            CollectCoin = nil
-        end
-    end
+    local CollectCoin = ctx.CollectCoin
 
     local CollectCoinBtn            = makeRGBButton("COLLECT COIN: OFF", LEFT_X, COLLECT_Y, FULL_W)
     CollectCoinBtn.TextSize         = 11
