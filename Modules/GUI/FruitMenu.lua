@@ -24,10 +24,10 @@ local SCAN_W      = 0.28
 
 function FruitMenu.Build(Main, ctx)
     local cfg    = ctx.Config
-    local svc    = ctx.Services
     local state  = ctx.State
     local stored = state.Stored
     local AutoBuy = ctx.AutoBuy
+    local Teleport = ctx.Teleport
 
     local function attachRGBStroke(target, thickness, transparency)
         local stroke = Instance.new("UIStroke")
@@ -108,14 +108,18 @@ function FruitMenu.Build(Main, ctx)
     local BaseBtn                   = makeRGBButton("BASE", LEFT_X, EXTRA_ROW_Y, HALF_W)
     stored.BaseBtn = BaseBtn
     BaseBtn.MouseButton1Click:Connect(function()
-        warn("[HOC NOC] BASE ainda sem acao definida.")
+        if Teleport and type(Teleport.ToNamedPoint) == "function" then
+            Teleport.ToNamedPoint("BASE")
+        end
     end)
 
     local PrismaticBtn              = makeRGBButton("PRISMATIC", RIGHT_X, EXTRA_ROW_Y, HALF_W)
     PrismaticBtn.TextSize           = 9
     stored.PrismaticBtn = PrismaticBtn
     PrismaticBtn.MouseButton1Click:Connect(function()
-        warn("[HOC NOC] PRISMATIC ainda sem acao definida.")
+        if Teleport and type(Teleport.ToNamedPoint) == "function" then
+            Teleport.ToNamedPoint("PRISMATIC")
+        end
     end)
 
     local CollectCoinBtn            = makeRGBButton("COLLECT COIN", LEFT_X, COLLECT_Y, FULL_W)

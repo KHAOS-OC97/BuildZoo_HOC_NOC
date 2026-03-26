@@ -13,6 +13,34 @@ function Teleport.Init(ctx)
     _cfg = ctx.Config
 end
 
+function Teleport.ToPosition(position)
+    local lChar = _svc.LocalPlayer.Character
+    if not lChar then return false end
+
+    local root = lChar:FindFirstChild("HumanoidRootPart")
+    if not root then return false end
+
+    local target = typeof(position) == "Vector3" and position or nil
+    if not target then return false end
+
+    pcall(function()
+        lChar:PivotTo(CFrame.new(target))
+    end)
+
+    return true
+end
+
+function Teleport.ToNamedPoint(name)
+    local points = _cfg and _cfg.TELEPORT_POINTS or nil
+    local target = points and points[name] or nil
+    if not target then
+        print("[HOC NOC] PONTO NÃO CONFIGURADO: " .. tostring(name))
+        return false
+    end
+
+    return Teleport.ToPosition(target)
+end
+
 function Teleport.ToAlly()
     local found = false
 

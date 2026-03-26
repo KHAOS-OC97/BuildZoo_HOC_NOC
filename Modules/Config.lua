@@ -86,6 +86,10 @@ return {
 
     -- Usuários aliados para teleporte
     TARGET_USERS = {"KChaos97", "CKhaos79"},
+    TELEPORT_POINTS = {
+        BASE = Vector3.new(847.1, 28.2, 4064.1),
+        PRISMATIC = Vector3.new(-1233.7, 122.5, 4065.9),
+    },
 
     -- Palavras-chave para detectar a loja de frutas no PlayerGui
     FRUIT_SHOP_KEYWORDS = {"fruit", "food", "feed", "seed", "product", "itemshop"},
