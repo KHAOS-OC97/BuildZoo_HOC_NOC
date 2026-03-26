@@ -12,7 +12,7 @@ local FruitMenu = {}
 
 local BASE_ROW_Y   = 270
 local ROW_GAP      = 36
-local AUTOBUY_Y    = BASE_ROW_Y + 18 -- Desce só AUTO BUY e SCAN para encaixar no meio
+local AUTOBUY_Y    = BASE_ROW_Y + 24 -- Desce um pouco mais para encaixe visual
 local EXTRA_ROW_Y  = BASE_ROW_Y + ROW_GAP
 local BASES_ROW_Y  = BASE_ROW_Y + ROW_GAP * 2
 local ACTION_ROW_Y = BASE_ROW_Y + ROW_GAP * 3
