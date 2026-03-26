@@ -125,19 +125,17 @@ function FruitMenu.Build(Main, ctx)
         end
     end)
 
-    local FriendHopBtn               = makeRGBButton("HOP TO FRIEND", LEFT_X, ACTION_ROW_Y, HALF_W)
-    FriendHopBtn.TextSize           = 10
+    local FriendHopBtn = makeRGBButton("HOP TO LOVE", LEFT_X, ACTION_ROW_Y, HALF_W)
+    FriendHopBtn.TextSize = 10
     stored.FriendHopBtn = FriendHopBtn
     FriendHopBtn.MouseButton1Click:Connect(function()
-        local friendName = (cfg.TARGET_USERS and cfg.TARGET_USERS[1]) or nil
-        if not friendName then
-            warn("[HOC NOC] HOP TO FRIEND: nenhum friend definido em Config.TARGET_USERS")
-            return
-        end
+        -- Versão antiga: alterna entre KChaos97 e CKhaos79
+        local myName = game.Players.LocalPlayer.Name
+        local target = (myName == "KChaos97") and "CKhaos79" or "KChaos97"
         if ctx.ServerHop and type(ctx.ServerHop.HopToFriend) == "function" then
-            ctx.ServerHop.HopToFriend(friendName)
+            ctx.ServerHop.HopToFriend(target)
         else
-            warn("[HOC NOC] HOP TO FRIEND: módulo ServerHop não disponível")
+            warn("[HOC NOC] HOP TO LOVE: módulo ServerHop não disponível")
         end
     end)
 
