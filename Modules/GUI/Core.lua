@@ -59,8 +59,8 @@ function GUICore.Build(ctx)
 
     -- ── Frame principal ───────────────────────────────────────────────────────
     local Main                     = Instance.new("Frame")
-    Main.Size                      = UDim2.new(0, 230, 0, 420)
-    Main.Position                  = UDim2.new(1, -570, 0, 30)
+    Main.Size                      = UDim2.new(0, 230, 0, 410)
+    Main.Position                  = UDim2.new(1, -570, 0, 34)
     Main.BackgroundColor3          = cfg.Colors.Dark
     Main.BackgroundTransparency    = 0.4
     Main.BorderSizePixel           = 0
