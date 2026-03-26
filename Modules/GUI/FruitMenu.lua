@@ -10,17 +10,19 @@
 
 local FruitMenu = {}
 
-local AUTOBUY_Y   = 304
-local EXTRA_ROW_Y = 342
-local ACTION_ROW_Y = 374
-local LEFT_X      = 0.05
-local RIGHT_X     = 0.525
-local HALF_W      = 0.425
-local FULL_W      = 0.9
-local BTN_H       = 25
-local AUTOBUY_W   = 0.58
-local SCAN_X      = 0.67
-local SCAN_W      = 0.28
+local BASE_ROW_Y   = 300
+local ROW_GAP      = 34
+local AUTOBUY_Y    = BASE_ROW_Y
+local EXTRA_ROW_Y  = BASE_ROW_Y + ROW_GAP
+local ACTION_ROW_Y = BASE_ROW_Y + ROW_GAP * 2
+local LEFT_X       = 0.05
+local RIGHT_X      = 0.525
+local HALF_W       = 0.425
+local FULL_W       = 0.9
+local BTN_H        = 25
+local AUTOBUY_W    = 0.58
+local SCAN_X       = 0.67
+local SCAN_W       = 0.28
 
 function FruitMenu.Build(Main, ctx)
     local cfg    = ctx.Config
