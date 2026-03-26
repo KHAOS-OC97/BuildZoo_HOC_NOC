@@ -12,7 +12,7 @@ local FruitMenu = {}
 
 local AUTOBUY_Y   = 311
 local EXTRA_ROW_Y = 345
-local ACTION_ROW_Y = 365
+local ACTION_ROW_Y = 385
 local LEFT_X      = 0.05
 local RIGHT_X     = 0.525
 local HALF_W      = 0.425
