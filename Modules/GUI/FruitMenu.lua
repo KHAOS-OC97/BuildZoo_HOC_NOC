@@ -10,8 +10,8 @@
 
 local FruitMenu = {}
 
-local BASE_ROW_Y   = 300
-local ROW_GAP      = 34
+local BASE_ROW_Y   = 296
+local ROW_GAP      = 36
 local AUTOBUY_Y    = BASE_ROW_Y
 local EXTRA_ROW_Y  = BASE_ROW_Y + ROW_GAP
 local ACTION_ROW_Y = BASE_ROW_Y + ROW_GAP * 2
