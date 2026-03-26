@@ -1,5 +1,10 @@
---[[
     AntiAFK.lua — Sistema Anti-AFK.
+
+    Init(ctx) conecta o evento Idled do LocalPlayer.
+    Ping()    é chamado periodicamente pelo loop monitor em Main.lua.
+]]
+
+    AntiAFK.lua — Sistema Anti-AFK com Caixa de Contenção.
 
     Init(ctx) conecta o evento Idled do LocalPlayer.
     Ping()    é chamado periodicamente pelo loop monitor em Main.lua.
@@ -144,6 +149,56 @@ function AntiAFK.Init(ctx)
 
     if _runtime.IdledConn then
         pcall(function() _runtime.IdledConn:Disconnect() end)
+    -- ==========================================
+    -- SISTEMA DA CAIXA ANTI-AFK
+    -- ==========================================
+    local function manageAFKBox(shouldBeActive)
+        local boxName = "HOC_AntiAFK_Box"
+        local boxFolder = workspace:FindFirstChild(boxName)
+
+        -- Se o Anti-AFK desligou, destruímos a caixa
+        if not shouldBeActive then
+            if boxFolder then boxFolder:Destroy() end
+            return
+        end
+
+        -- Se já existe uma caixa, não cria outra
+        if boxFolder then return end
+
+        local char = _svc.LocalPlayer and _svc.LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+
+        -- Criamos a pasta para organizar as paredes
+        boxFolder = Instance.new("Folder")
+        boxFolder.Name = boxName
+        boxFolder.Parent = workspace
+
+        -- Função auxiliar para criar cada parede
+        local function createWall(size, offset)
+            local part = Instance.new("Part")
+            part.Size = size
+            part.CFrame = root.CFrame * offset
+            part.Anchored = true
+            part.CanCollide = true
+            part.Transparency = 0.5
+            part.Material = Enum.Material.ForceField -- Visual estiloso de campo de força
+            part.Color = Color3.fromRGB(0, 255, 255) -- Cor Ciano
+            part.CanQuery = false
+            part.Parent = boxFolder
+        end
+
+        local w, h, t = 5, 7, 1 -- Largura, Altura, Espessura
+
+        createWall(Vector3.new(w, t, w), CFrame.new(0, -h/2, 0)) -- Chão
+        createWall(Vector3.new(w, t, w), CFrame.new(0, h/2, 0))  -- Teto
+        createWall(Vector3.new(w, h, t), CFrame.new(0, 0, -w/2)) -- Frente
+        createWall(Vector3.new(w, h, t), CFrame.new(0, 0, w/2))  -- Trás
+        createWall(Vector3.new(t, h, w), CFrame.new(-w/2, 0, 0)) -- Esquerda
+        createWall(Vector3.new(t, h, w), CFrame.new(w/2, 0, 0))  -- Direita
+    end
+    -- ==========================================
+
     end
 
     _runtime.IdledConn = _svc.LocalPlayer.Idled:Connect(function()
@@ -171,6 +226,18 @@ function AntiAFK.Init(ctx)
             if _runtime and _runtime.IdledConn then
                 pcall(function() _runtime.IdledConn:Disconnect() end)
                 _runtime.IdledConn = nil
+
+                if _runtime and _runtime.HeartbeatConn then
+                    pcall(function() _runtime.HeartbeatConn:Disconnect() end)
+                    _runtime.HeartbeatConn = nil
+                end
+
+                if _runtime and _runtime.IdledConn then
+                    pcall(function() _runtime.IdledConn:Disconnect() end)
+                    _runtime.IdledConn = nil
+                end
+
+                _runtime.WatchdogRunning = false
             end
 
             _runtime.WatchdogRunning = false
