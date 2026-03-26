@@ -10,10 +10,16 @@ local Fly = {}
 
 local _cfg
 local _svc
+local _state
 local _runtime
 
 local ZERO = Vector3.new(0, 0, 0)
 local UP = Vector3.new(0, 1, 0)
+
+local function syncFlyButton()
+    if not _state or not _state.Stored or not _state.Stored.FlyBtn then return end
+    _state.Stored.FlyBtn.Text = _G_Fly and "FLY: ON" or "FLY: OFF"
+end
 
 local function getCharacterParts()
     local player = _svc and _svc.LocalPlayer
@@ -72,6 +78,7 @@ end
 local function detachFlight()
     local _, hum, root = getCharacterParts()
     setFlightState(hum, false)
+    _runtime.Active = false
 
     if root then
         pcall(function()
@@ -93,19 +100,31 @@ local function updateFlight(dt)
     local direction = getMoveDirection(cameraCFrame)
     local speed = (_cfg.FLY_SPEED or 70) * math.max(dt or 0.016, 0.016)
     local nextPosition = root.Position + (direction * speed)
+    local facing = Vector3.new(cameraCFrame.LookVector.X, 0, cameraCFrame.LookVector.Z)
+
+    if facing.Magnitude <= 0 then
+        facing = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
+    end
+    if facing.Magnitude <= 0 then
+        facing = Vector3.new(0, 0, -1)
+    else
+        facing = facing.Unit
+    end
 
     setFlightState(hum, true)
+    _runtime.Active = true
 
     pcall(function()
         root.AssemblyLinearVelocity = ZERO
         root.AssemblyAngularVelocity = ZERO
-        root.CFrame = CFrame.lookAt(nextPosition, nextPosition + cameraCFrame.LookVector)
+        root.CFrame = CFrame.lookAt(nextPosition, nextPosition + facing, UP)
     end)
 end
 
 function Fly.Init(ctx)
     _cfg = ctx.Config
     _svc = ctx.Services
+    _state = ctx.State
 
     _G.__HOC_RUNTIME = _G.__HOC_RUNTIME or {}
     _G.__HOC_RUNTIME.Fly = _G.__HOC_RUNTIME.Fly or {
@@ -114,6 +133,7 @@ function Fly.Init(ctx)
         InputEndedConn = nil,
         CharConn = nil,
         Keys = {},
+        Active = false,
     }
     _runtime = _G.__HOC_RUNTIME.Fly
 
@@ -123,9 +143,16 @@ function Fly.Init(ctx)
     if _runtime.CharConn then pcall(function() _runtime.CharConn:Disconnect() end) end
 
     clearFlightState()
+    syncFlyButton()
 
     _runtime.InputBeganConn = _svc.UserInputService.InputBegan:Connect(function(input, processed)
         if processed or _svc.UserInputService:GetFocusedTextBox() then return end
+
+        if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.F then
+            Fly.Toggle()
+            return
+        end
+
         _runtime.Keys[input.KeyCode] = true
     end)
 
@@ -139,18 +166,20 @@ function Fly.Init(ctx)
                 _G_Fly = false
                 clearFlightState()
                 detachFlight()
+                syncFlyButton()
             end
             return
         end
 
         if _G_Fly then
             updateFlight(dt)
-        else
+        elseif _runtime.Active then
             detachFlight()
         end
     end)
 
     _runtime.CharConn = _svc.LocalPlayer.CharacterAdded:Connect(function()
+        _runtime.Active = false
         clearFlightState()
 
         if _G_Fly then
@@ -172,6 +201,7 @@ end
 function Fly.Toggle()
     _G_Fly = not _G_Fly
     clearFlightState()
+    syncFlyButton()
 
     if _G_Fly then
         updateFlight(0.016)
