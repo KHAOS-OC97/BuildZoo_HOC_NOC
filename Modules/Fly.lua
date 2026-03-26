@@ -50,6 +50,13 @@ local function clearFlightState()
     _runtime.Keys = {}
 end
 
+local function getVerticalInput()
+    local vertical = 0
+    if _runtime.Keys[Enum.KeyCode.Space] then vertical = vertical + 1 end
+    if _runtime.Keys[Enum.KeyCode.LeftShift] then vertical = vertical - 1 end
+    return vertical
+end
+
 local function getFlightSpeed()
     local walkSpeed = tonumber(_G_WalkSpeed)
     if walkSpeed and walkSpeed > 0 then
@@ -76,8 +83,6 @@ local function getMoveDirection(cameraCFrame)
     if _runtime.Keys[Enum.KeyCode.S] then direction = direction - flatLook end
     if _runtime.Keys[Enum.KeyCode.D] then direction = direction + flatRight end
     if _runtime.Keys[Enum.KeyCode.A] then direction = direction - flatRight end
-    if _runtime.Keys[Enum.KeyCode.Space] then direction = direction + UP end
-    if _runtime.Keys[Enum.KeyCode.LeftShift] then direction = direction - UP end
 
     if direction.Magnitude > 0 then
         direction = direction.Unit
@@ -91,6 +96,7 @@ local function detachFlight()
     setFlightState(hum, false)
     _runtime.Active = false
     _runtime.TargetPosition = nil
+    _runtime.HoldY = nil
 
     if root then
         pcall(function()
@@ -103,17 +109,25 @@ end
 local function updateFlight(dt)
     if not _G_Fly then return end
 
-    local _, hum, root = getCharacterParts()
-    if not hum or not root then return end
+    local char, hum, root = getCharacterParts()
+    if not char or not hum or not root then return end
 
     local camera = workspace.CurrentCamera
     local cameraCFrame = camera and camera.CFrame or root.CFrame
 
-    local direction = getMoveDirection(cameraCFrame)
+    local horizontalDirection = getMoveDirection(cameraCFrame)
+    local verticalInput = getVerticalInput()
     local speed = getFlightSpeed() * math.max(dt or 0.016, 0.016)
     local targetPosition = _runtime.TargetPosition or root.Position
-    local nextPosition = targetPosition + (direction * speed)
+    local holdY = _runtime.HoldY or root.Position.Y
+    local nextPosition = targetPosition + (horizontalDirection * speed)
     local facing = Vector3.new(cameraCFrame.LookVector.X, 0, cameraCFrame.LookVector.Z)
+
+    if verticalInput ~= 0 then
+        holdY = holdY + (verticalInput * speed)
+    end
+
+    nextPosition = Vector3.new(nextPosition.X, holdY, nextPosition.Z)
 
     if facing.Magnitude <= 0 then
         facing = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
@@ -127,11 +141,12 @@ local function updateFlight(dt)
     setFlightState(hum, true)
     _runtime.Active = true
     _runtime.TargetPosition = nextPosition
+    _runtime.HoldY = holdY
 
     pcall(function()
         root.AssemblyLinearVelocity = ZERO
         root.AssemblyAngularVelocity = ZERO
-        root.CFrame = CFrame.lookAt(nextPosition, nextPosition + facing, UP)
+        char:PivotTo(CFrame.lookAt(nextPosition, nextPosition + facing, UP))
     end)
 end
 
@@ -151,6 +166,7 @@ function Fly.Init(ctx)
         Keys = {},
         Active = false,
         TargetPosition = nil,
+        HoldY = nil,
     }
     _runtime = _G.__HOC_RUNTIME.Fly
 
@@ -219,6 +235,7 @@ function Fly.Init(ctx)
     _runtime.CharConn = _svc.LocalPlayer.CharacterAdded:Connect(function()
         _runtime.Active = false
         _runtime.TargetPosition = nil
+        _runtime.HoldY = nil
         clearFlightState()
 
         if _G_Fly then
@@ -245,6 +262,7 @@ function Fly.Toggle()
     if _G_Fly then
         local _, _, root = getCharacterParts()
         _runtime.TargetPosition = root and root.Position or nil
+        _runtime.HoldY = root and root.Position.Y or nil
         updateFlight(0.016)
     else
         detachFlight()
