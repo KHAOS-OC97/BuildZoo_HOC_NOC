@@ -12,9 +12,11 @@ local _cfg
 local _svc
 local _state
 local _runtime
+local _contextActionService
 
 local ZERO = Vector3.new(0, 0, 0)
 local UP = Vector3.new(0, 1, 0)
+local TOGGLE_ACTION = "HOCNOC_ToggleFly"
 
 local function syncFlyButton()
     if not _state or not _state.Stored or not _state.Stored.FlyBtn then return end
@@ -125,6 +127,7 @@ function Fly.Init(ctx)
     _cfg = ctx.Config
     _svc = ctx.Services
     _state = ctx.State
+    _contextActionService = game:GetService("ContextActionService")
 
     _G.__HOC_RUNTIME = _G.__HOC_RUNTIME or {}
     _G.__HOC_RUNTIME.Fly = _G.__HOC_RUNTIME.Fly or {
@@ -132,6 +135,7 @@ function Fly.Init(ctx)
         InputBeganConn = nil,
         InputEndedConn = nil,
         CharConn = nil,
+        ToggleBound = false,
         Keys = {},
         Active = false,
     }
@@ -141,17 +145,38 @@ function Fly.Init(ctx)
     if _runtime.InputBeganConn then pcall(function() _runtime.InputBeganConn:Disconnect() end) end
     if _runtime.InputEndedConn then pcall(function() _runtime.InputEndedConn:Disconnect() end) end
     if _runtime.CharConn then pcall(function() _runtime.CharConn:Disconnect() end) end
+    if _runtime.ToggleBound and _contextActionService then
+        pcall(function() _contextActionService:UnbindAction(TOGGLE_ACTION) end)
+        _runtime.ToggleBound = false
+    end
 
     clearFlightState()
     syncFlyButton()
 
-    _runtime.InputBeganConn = _svc.UserInputService.InputBegan:Connect(function(input, processed)
-        if processed or _svc.UserInputService:GetFocusedTextBox() then return end
+    if _contextActionService then
+        pcall(function()
+            _contextActionService:BindActionAtPriority(
+                TOGGLE_ACTION,
+                function(_, inputState)
+                    if inputState ~= Enum.UserInputState.Begin then return Enum.ContextActionResult.Pass end
+                    if _svc.UserInputService:GetFocusedTextBox() then return Enum.ContextActionResult.Pass end
+                    Fly.Toggle()
+                    return Enum.ContextActionResult.Sink
+                end,
+                false,
+                Enum.ContextActionPriority.High.Value,
+                Enum.KeyCode.F
+            )
+            _runtime.ToggleBound = true
+        end)
+    end
 
+    _runtime.InputBeganConn = _svc.UserInputService.InputBegan:Connect(function(input, processed)
         if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.F then
-            Fly.Toggle()
             return
         end
+
+        if processed or _svc.UserInputService:GetFocusedTextBox() then return end
 
         _runtime.Keys[input.KeyCode] = true
     end)
