@@ -12,7 +12,7 @@ local FruitMenu = {}
 
 local AUTOBUY_Y   = 311
 local EXTRA_ROW_Y = 345
-local FOLLOW_Y    = 379
+local FRIEND_HOP_Y = 379
 local COLLECT_Y   = 409
 local LEFT_X      = 0.05
 local RIGHT_X     = 0.525
@@ -123,19 +123,19 @@ function FruitMenu.Build(Main, ctx)
         end
     end)
 
-    local FollowAllyBtn              = makeRGBButton("FOLLOW ALLY: OFF", LEFT_X, FOLLOW_Y, FULL_W)
-    FollowAllyBtn.TextSize           = 11
-    stored.FollowAllyBtn = FollowAllyBtn
-    local followModeOn                = false
-    local function setFollowBtnState(active)
-        FollowAllyBtn.Text = active and "FOLLOW ALLY: ON" or "FOLLOW ALLY: OFF"
-        FollowAllyBtn.BackgroundColor3 = active and Color3.fromRGB(0, 100, 0) or cfg.Colors.Dark
-    end
-    setFollowBtnState(followModeOn)
-    FollowAllyBtn.MouseButton1Click:Connect(function()
-        if Teleport and type(Teleport.FollowAllyToggle) == "function" then
-            followModeOn = Teleport.FollowAllyToggle()
-            setFollowBtnState(followModeOn)
+    local FriendHopBtn               = makeRGBButton("HOP TO FRIEND", LEFT_X, FRIEND_HOP_Y, FULL_W)
+    FriendHopBtn.TextSize           = 10
+    stored.FriendHopBtn = FriendHopBtn
+    FriendHopBtn.MouseButton1Click:Connect(function()
+        local friendName = (cfg.TARGET_USERS and cfg.TARGET_USERS[1]) or nil
+        if not friendName then
+            warn("[HOC NOC] HOP TO FRIEND: nenhum friend definido em Config.TARGET_USERS")
+            return
+        end
+        if ctx.ServerHop and type(ctx.ServerHop.HopToFriend) == "function" then
+            ctx.ServerHop.HopToFriend(friendName)
+        else
+            warn("[HOC NOC] HOP TO FRIEND: módulo ServerHop não disponível")
         end
     end)
 
