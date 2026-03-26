@@ -39,6 +39,7 @@ function ServerHop.HopToFriend(friendName)
         return false
     end
 
+    print("[HOC NOC] HopToFriend: alvo = ", friendName)
     local players = _svc.Players
     local currentJob = game.JobId
     local placeId = game.PlaceId
@@ -54,6 +55,7 @@ function ServerHop.HopToFriend(friendName)
     local success, err = pcall(function()
         userId = players:GetUserIdFromNameAsync(friendName)
     end)
+    print("[HOC NOC] HopToFriend: userId = ", userId, ", success = ", success, ", err = ", err)
 
     if not success or not userId then
         warn("[HOC NOC] HopToFriend: não foi possível recuperar userId (" .. tostring(friendName) .. ")")
@@ -66,6 +68,7 @@ function ServerHop.HopToFriend(friendName)
         local ok, result = pcall(function()
             return _svc.TeleportService:GetPlayerPlaceInstanceAsync(userId)
         end)
+        print("[HOC NOC] HopToFriend: GetPlayerPlaceInstanceAsync ok = ", ok, ", result = ", result and ("PlaceId="..tostring(result.PlaceId)..", JobId="..tostring(result.JobId)) or "nil")
 
         if ok and result and result.PlaceId and result.JobId then
             friendInstance = result
@@ -88,6 +91,7 @@ function ServerHop.HopToFriend(friendName)
         return true
     end
 
+    print("[HOC NOC] HopToFriend: Teleportando para JobId = ", friendInstance.JobId)
     pcall(function()
         _svc.TeleportService:TeleportToPlaceInstance(placeId, friendInstance.JobId)
     end)
