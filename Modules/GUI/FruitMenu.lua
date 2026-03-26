@@ -11,7 +11,7 @@
 local FruitMenu = {}
 
 local BASE_ROW_Y   = 292
-local ROW_GAP      = 32
+local ROW_GAP      = 38
 local AUTOBUY_Y    = BASE_ROW_Y
 local EXTRA_ROW_Y  = BASE_ROW_Y + ROW_GAP
 local ACTION_ROW_Y = BASE_ROW_Y + ROW_GAP * 2
@@ -19,7 +19,7 @@ local LEFT_X       = 0.04
 local RIGHT_X      = 0.52
 local HALF_W       = 0.44
 local FULL_W       = 0.92
-local BTN_H        = 26
+local BTN_H        = 28
 local AUTOBUY_W    = 0.44
 local SCAN_X       = 0.52
 local SCAN_W       = 0.44
