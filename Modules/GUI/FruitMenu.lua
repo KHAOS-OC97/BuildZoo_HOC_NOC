@@ -14,7 +14,8 @@ local BASE_ROW_Y   = 292
 local ROW_GAP      = 38
 local AUTOBUY_Y    = BASE_ROW_Y
 local EXTRA_ROW_Y  = BASE_ROW_Y + ROW_GAP
-local ACTION_ROW_Y = BASE_ROW_Y + ROW_GAP * 2
+local BASES_ROW_Y  = BASE_ROW_Y + ROW_GAP * 2 + 12
+local ACTION_ROW_Y = BASE_ROW_Y + ROW_GAP * 3 + 18
 local LEFT_X       = 0.04
 local RIGHT_X      = 0.52
 local HALF_W       = 0.44
@@ -107,7 +108,7 @@ function FruitMenu.Build(Main, ctx)
         setDiagVisible(not state.AutoBuyDiagVisible)
     end)
 
-    local BaseBtn                   = makeRGBButton("BASE", LEFT_X, EXTRA_ROW_Y, HALF_W)
+    local BaseBtn                   = makeRGBButton("BASE", LEFT_X, BASES_ROW_Y, HALF_W)
     stored.BaseBtn = BaseBtn
     BaseBtn.MouseButton1Click:Connect(function()
         if Teleport and type(Teleport.ToNamedPoint) == "function" then
@@ -115,7 +116,7 @@ function FruitMenu.Build(Main, ctx)
         end
     end)
 
-    local PrismaticBtn              = makeRGBButton("PRISMATIC", RIGHT_X, EXTRA_ROW_Y, HALF_W)
+    local PrismaticBtn              = makeRGBButton("PRISMATIC", RIGHT_X, BASES_ROW_Y, HALF_W)
     PrismaticBtn.TextSize           = 9
     stored.PrismaticBtn = PrismaticBtn
     PrismaticBtn.MouseButton1Click:Connect(function()
