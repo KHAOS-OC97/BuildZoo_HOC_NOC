@@ -33,10 +33,10 @@ end
 
 function Buttons.Build(Main, ctx)
     local cfg       = ctx.Config
-    local svc       = ctx.Services
     local state     = ctx.State
     local stored    = state.Stored
     local Movement  = ctx.Movement
+    local Fly       = ctx.Fly
     local BigPetFeed = ctx.BigPetFeed
     local ServerHop = ctx.ServerHop
     local Teleport  = ctx.Teleport
@@ -119,6 +119,16 @@ function Buttons.Build(Main, ctx)
         if Emotes and type(Emotes.Toggle) == "function" then
             Emotes.Toggle()
             EmoteBtn.Text = Emotes.IsOpen() and "EMOTE: ON" or "EMOTE"
+        end
+    end)
+
+    -- ── Fly ─────────────────────────────────────────────────────────────────
+    local FlyBtn = addBtn(_G_Fly and "FLY: ON" or "FLY: OFF", BTN_START + BTN_STEP * 6)
+    stored.FlyBtn = FlyBtn
+    FlyBtn.MouseButton1Click:Connect(function()
+        if Fly and type(Fly.Toggle) == "function" then
+            local enabled = Fly.Toggle()
+            FlyBtn.Text = enabled and "FLY: ON" or "FLY: OFF"
         end
     end)
 

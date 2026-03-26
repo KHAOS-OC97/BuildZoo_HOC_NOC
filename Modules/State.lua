@@ -17,6 +17,7 @@ _G_InfJump     = (_G_InfJump     == nil) and false or _G_InfJump
 _G_ESP         = (_G_ESP         == nil) and false or _G_ESP
 _G_AntiAFK     = (_G_AntiAFK     == nil) and false or _G_AntiAFK
 _G_WalkSpeed   = (_G_WalkSpeed   == nil) and 16    or _G_WalkSpeed
+_G_Fly         = (_G_Fly         == nil) and false or _G_Fly
 _G_AutoBuy     = (_G_AutoBuy     == nil) and false or _G_AutoBuy
 _G_BuyAmount   = (_G_BuyAmount   == nil) and 1     or _G_BuyAmount
 _G_BigPetsFeed = (_G_BigPetsFeed == nil) and false or _G_BigPetsFeed
@@ -38,6 +39,7 @@ local State = {
         Main           = nil,
         SpeedBtn       = nil,
         FruitBtn       = nil,
+        FlyBtn         = nil,
         BigPetsFeedBtn = nil,
         HopBtn         = nil,
         TPBtn          = nil,
@@ -66,6 +68,7 @@ function State.ClearStored()
         Main           = nil,
         SpeedBtn       = nil,
         FruitBtn       = nil,
+        FlyBtn         = nil,
         BigPetsFeedBtn = nil,
         HopBtn         = nil,
         TPBtn          = nil,

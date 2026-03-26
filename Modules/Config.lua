@@ -10,6 +10,7 @@ return {
 
     -- Ciclo de velocidades (WalkSpeed)
     WALK_SPEED_CYCLE = {16, 50, 100},
+    FLY_SPEED = 70,
 
     -- Intervalo (segundos) entre pings periódicos de Anti-AFK
     ANTI_AFK_INTERVAL = 60,
