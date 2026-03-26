@@ -12,6 +12,9 @@ local _cfg
 local _svc
 local _runtime
 
+local ZERO = Vector3.new(0, 0, 0)
+local UP = Vector3.new(0, 1, 0)
+
 local function getCharacterParts()
     local player = _svc and _svc.LocalPlayer
     local char = player and player.Character
@@ -25,6 +28,8 @@ local function getCharacterParts()
 end
 
 local function clearBodyMovers()
+    if not _runtime then return end
+
     if _runtime.BodyVelocity then
         pcall(function() _runtime.BodyVelocity:Destroy() end)
         _runtime.BodyVelocity = nil
@@ -36,16 +41,24 @@ local function clearBodyMovers()
     end
 end
 
+local function setFlightState(hum, enabled)
+    if not hum then return end
+
+    pcall(function()
+        hum.AutoRotate = not enabled
+        hum.PlatformStand = enabled
+        hum:ChangeState(enabled and Enum.HumanoidStateType.Physics or Enum.HumanoidStateType.GettingUp)
+    end)
+end
+
 local function detachFlight()
     local _, hum, root = getCharacterParts()
     clearBodyMovers()
 
-    if hum then
-        pcall(function() hum.AutoRotate = true end)
-    end
+    setFlightState(hum, false)
 
     if root then
-        pcall(function() root.AssemblyLinearVelocity = Vector3.zero end)
+        pcall(function() root.AssemblyLinearVelocity = ZERO end)
     end
 end
 
@@ -56,7 +69,7 @@ local function attachFlight(root)
     bodyVelocity.Name = "HOCNOC_FlyVelocity"
     bodyVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
     bodyVelocity.P = 10000
-    bodyVelocity.Velocity = Vector3.zero
+    bodyVelocity.Velocity = ZERO
     bodyVelocity.Parent = root
 
     local bodyGyro = Instance.new("BodyGyro")
@@ -94,15 +107,15 @@ local function updateFlight()
         flatRight = flatRight.Unit
     end
 
-    local direction = Vector3.zero
+    local direction = ZERO
 
-    if _runtime.Keys[Enum.KeyCode.W] then direction += flatLook end
-    if _runtime.Keys[Enum.KeyCode.S] then direction -= flatLook end
-    if _runtime.Keys[Enum.KeyCode.D] then direction += flatRight end
-    if _runtime.Keys[Enum.KeyCode.A] then direction -= flatRight end
-    if _runtime.Keys[Enum.KeyCode.Space] then direction += Vector3.yAxis end
-    if _runtime.Keys[Enum.KeyCode.LeftShift] or _runtime.Keys[Enum.KeyCode.RightShift] then
-        direction -= Vector3.yAxis
+    if _runtime.Keys[Enum.KeyCode.W] then direction = direction + flatLook end
+    if _runtime.Keys[Enum.KeyCode.S] then direction = direction - flatLook end
+    if _runtime.Keys[Enum.KeyCode.D] then direction = direction + flatRight end
+    if _runtime.Keys[Enum.KeyCode.A] then direction = direction - flatRight end
+    if _runtime.Keys[Enum.KeyCode.Space] then direction = direction + UP end
+    if _runtime.Keys[Enum.KeyCode.LeftShift] then
+        direction = direction - UP
     end
 
     if direction.Magnitude > 0 then
@@ -112,10 +125,7 @@ local function updateFlight()
     _runtime.BodyVelocity.Velocity = direction
     _runtime.BodyGyro.CFrame = CFrame.lookAt(root.Position, root.Position + cameraCFrame.LookVector)
 
-    pcall(function()
-        hum.AutoRotate = false
-        hum:ChangeState(Enum.HumanoidStateType.Physics)
-    end)
+    setFlightState(hum, true)
 end
 
 function Fly.Init(ctx)
@@ -124,7 +134,7 @@ function Fly.Init(ctx)
 
     _G.__HOC_RUNTIME = _G.__HOC_RUNTIME or {}
     _G.__HOC_RUNTIME.Fly = _G.__HOC_RUNTIME.Fly or {
-        RenderConn = nil,
+        HeartbeatConn = nil,
         InputBeganConn = nil,
         InputEndedConn = nil,
         CharConn = nil,
@@ -134,7 +144,7 @@ function Fly.Init(ctx)
     }
     _runtime = _G.__HOC_RUNTIME.Fly
 
-    if _runtime.RenderConn then pcall(function() _runtime.RenderConn:Disconnect() end) end
+    if _runtime.HeartbeatConn then pcall(function() _runtime.HeartbeatConn:Disconnect() end) end
     if _runtime.InputBeganConn then pcall(function() _runtime.InputBeganConn:Disconnect() end) end
     if _runtime.InputEndedConn then pcall(function() _runtime.InputEndedConn:Disconnect() end) end
     if _runtime.CharConn then pcall(function() _runtime.CharConn:Disconnect() end) end
@@ -151,7 +161,7 @@ function Fly.Init(ctx)
         _runtime.Keys[input.KeyCode] = nil
     end)
 
-    _runtime.RenderConn = _svc.RunService.RenderStepped:Connect(function()
+    _runtime.HeartbeatConn = _svc.RunService.Heartbeat:Connect(function()
         if not _G_Running then
             if _G_Fly then
                 _G_Fly = false
