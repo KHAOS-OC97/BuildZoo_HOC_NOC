@@ -123,21 +123,35 @@ function FruitMenu.Build(Main, ctx)
     end)
 
     local CollectCoin = nil
-    pcall(function() CollectCoin = require(script.Parent.Parent.CollectCoin) end)
+    do
+        local ok
+        ok, CollectCoin = pcall(function()
+            return require(script.Parent.Parent:WaitForChild("CollectCoin"))
+        end)
+        if not ok then
+            warn("[HOC NOC] Falha ao require CollectCoin módulo, coletor não ficará disponível.")
+            CollectCoin = nil
+        end
+    end
+
     local CollectCoinBtn            = makeRGBButton("COLLECT COIN: OFF", LEFT_X, COLLECT_Y, FULL_W)
     CollectCoinBtn.TextSize         = 11
     stored.CollectCoinBtn = CollectCoinBtn
     local autoCollectActive = _G_AutoCollect or false
     local autoCollectThread = nil
+
     local function setCollectBtnState(active)
         CollectCoinBtn.Text = active and "COLLECT COIN: ON" or "COLLECT COIN: OFF"
         CollectCoinBtn.BackgroundColor3 = active and Color3.fromRGB(0, 100, 0) or cfg.Colors.Dark
     end
+
     setCollectBtnState(autoCollectActive)
+
     CollectCoinBtn.MouseButton1Click:Connect(function()
         autoCollectActive = not autoCollectActive
         _G_AutoCollect = autoCollectActive
         setCollectBtnState(autoCollectActive)
+
         if autoCollectActive then
             if CollectCoin and type(CollectCoin.CollectAll) == "function" then
                 autoCollectThread = task.spawn(function()
@@ -146,9 +160,9 @@ function FruitMenu.Build(Main, ctx)
                         task.wait(1)
                     end
                 end)
+            else
+                warn("[HOC NOC] CollectCoin module não disponível.")
             end
-        else
-            -- Thread será interrompida naturalmente pelo flag
         end
     end)
 
