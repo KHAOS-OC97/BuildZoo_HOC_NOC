@@ -12,7 +12,8 @@ local FruitMenu = {}
 
 local AUTOBUY_Y   = 311
 local EXTRA_ROW_Y = 345
-local COLLECT_Y   = 379
+local FOLLOW_Y    = 379
+local COLLECT_Y   = 409
 local LEFT_X      = 0.05
 local RIGHT_X     = 0.525
 local HALF_W      = 0.425
@@ -119,6 +120,22 @@ function FruitMenu.Build(Main, ctx)
     PrismaticBtn.MouseButton1Click:Connect(function()
         if Teleport and type(Teleport.ToNamedPoint) == "function" then
             Teleport.ToNamedPoint("PRISMATIC")
+        end
+    end)
+
+    local FollowAllyBtn              = makeRGBButton("FOLLOW ALLY: OFF", LEFT_X, FOLLOW_Y, FULL_W)
+    FollowAllyBtn.TextSize           = 11
+    stored.FollowAllyBtn = FollowAllyBtn
+    local followModeOn                = false
+    local function setFollowBtnState(active)
+        FollowAllyBtn.Text = active and "FOLLOW ALLY: ON" or "FOLLOW ALLY: OFF"
+        FollowAllyBtn.BackgroundColor3 = active and Color3.fromRGB(0, 100, 0) or cfg.Colors.Dark
+    end
+    setFollowBtnState(followModeOn)
+    FollowAllyBtn.MouseButton1Click:Connect(function()
+        if Teleport and type(Teleport.FollowAllyToggle) == "function" then
+            followModeOn = Teleport.FollowAllyToggle()
+            setFollowBtnState(followModeOn)
         end
     end)
 
