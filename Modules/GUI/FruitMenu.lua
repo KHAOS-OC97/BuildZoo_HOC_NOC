@@ -12,8 +12,7 @@ local FruitMenu = {}
 
 local AUTOBUY_Y   = 311
 local EXTRA_ROW_Y = 345
-local FRIEND_HOP_Y = 379
-local COLLECT_Y   = 409
+local ACTION_ROW_Y = 379
 local LEFT_X      = 0.05
 local RIGHT_X     = 0.525
 local HALF_W      = 0.425
@@ -123,7 +122,7 @@ function FruitMenu.Build(Main, ctx)
         end
     end)
 
-    local FriendHopBtn               = makeRGBButton("HOP TO FRIEND", LEFT_X, FRIEND_HOP_Y, FULL_W)
+    local FriendHopBtn               = makeRGBButton("HOP TO FRIEND", LEFT_X, ACTION_ROW_Y, HALF_W)
     FriendHopBtn.TextSize           = 10
     stored.FriendHopBtn = FriendHopBtn
     FriendHopBtn.MouseButton1Click:Connect(function()
@@ -141,7 +140,7 @@ function FruitMenu.Build(Main, ctx)
 
     local CollectCoin = ctx.CollectCoin
 
-    local CollectCoinBtn            = makeRGBButton("COLLECT COIN: OFF", LEFT_X, COLLECT_Y, FULL_W)
+    local CollectCoinBtn            = makeRGBButton("COLLECT COIN: OFF", RIGHT_X, ACTION_ROW_Y, HALF_W)
     CollectCoinBtn.TextSize         = 11
     stored.CollectCoinBtn = CollectCoinBtn
     local autoCollectActive = _G_AutoCollect or false
