@@ -129,10 +129,17 @@ function FruitMenu.Build(Main, ctx)
     FriendHopBtn.TextSize = 10
     stored.FriendHopBtn = FriendHopBtn
     FriendHopBtn.MouseButton1Click:Connect(function()
-        -- Versão antiga: alterna entre KChaos97 e CKhaos79
         local myName = game.Players.LocalPlayer.Name
         local target = (myName == "KChaos97") and "CKhaos79" or "KChaos97"
-        if ctx.ServerHop and type(ctx.ServerHop.HopToFriend) == "function" then
+        local players = game:GetService("Players")
+        local me = players.LocalPlayer
+        local targetPlayer = players:FindFirstChild(target)
+        if targetPlayer and targetPlayer.Character and targetPlayer.Character.PrimaryPart and me.Character and me.Character.PrimaryPart then
+            -- Ambos no mesmo servidor: teleporta localmente até o outro
+            me.Character:SetPrimaryPartCFrame(targetPlayer.Character.PrimaryPart.CFrame + Vector3.new(2,0,0))
+            print("[HOC NOC] HOP TO LOVE: Teleport local para ", target)
+        elseif ctx.ServerHop and type(ctx.ServerHop.HopToFriend) == "function" then
+            -- Em servidores diferentes: hop de servidor
             ctx.ServerHop.HopToFriend(target)
         else
             warn("[HOC NOC] HOP TO LOVE: módulo ServerHop não disponível")
