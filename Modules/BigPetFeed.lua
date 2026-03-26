@@ -25,6 +25,13 @@ local function collectSelectedTargets()
             selected[name] = true
         end
     end
+
+    if next(selected) == nil then
+        for _, fruit in ipairs(_cfg and _cfg.FRUITS or {}) do
+            selected[fruit.name] = true
+        end
+    end
+
     return selected
 end
 

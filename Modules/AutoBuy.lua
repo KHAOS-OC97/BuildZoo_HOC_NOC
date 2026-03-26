@@ -149,6 +149,13 @@ local function collectTargets()
             t[name] = true
         end
     end
+
+    if next(t) == nil then
+        for _, fruit in ipairs(_cfg and _cfg.FRUITS or {}) do
+            t[fruit.name] = true
+        end
+    end
+
     return t
 end
 
@@ -1612,7 +1619,7 @@ function AutoBuy.Pulse()
 
     local targets = collectTargets()
     if next(targets) == nil then
-        updateDebugText({"Nenhuma fruta selecionada."})
+        updateDebugText({"Nenhuma fruta disponivel para AutoBuy."})
         return false
     end
 

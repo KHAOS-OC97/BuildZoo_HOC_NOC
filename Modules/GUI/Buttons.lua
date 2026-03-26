@@ -8,14 +8,16 @@
 
 local Buttons = {}
 
--- Posições absolutas em pixels: toggles terminam em ~200px, botões começam em 207px
--- O último botão (EMOTE) fica em 367px, então a seção FruitMenu deve começar abaixo disso.
 local BTN_START = 207
-local BTN_STEP  = 32
+local BTN_STEP  = 34
+local BTN_HEIGHT = 25
+local LEFT_X = 0.05
+local RIGHT_X = 0.525
+local HALF_W = 0.425
 
-local function makeBtn(parent, text, pos, cfg)
+local function makeBtn(parent, text, pos, size, cfg)
     local btn                    = Instance.new("TextButton", parent)
-    btn.Size                     = UDim2.new(0.9, 0, 0, 25)
+    btn.Size                     = size or UDim2.new(0.9, 0, 0, BTN_HEIGHT)
     btn.Position                 = pos
     btn.BackgroundColor3         = cfg.Colors.Dark
     btn.BackgroundTransparency   = 0.3
@@ -40,26 +42,57 @@ function Buttons.Build(Main, ctx)
     local Fly       = ctx.Fly
     local BigPetFeed = ctx.BigPetFeed
     local ServerHop = ctx.ServerHop
-    local Teleport  = ctx.Teleport
 
     local strokes = {}   -- rastreia strokes para o loop RGB
 
-    local function addBtn(text, yPixel)
-        local btn, stroke = makeBtn(Main, text, UDim2.new(0.05, 0, 0, yPixel), cfg)
+    local function addBtn(text, xScale, yPixel, widthScale)
+        local btn, stroke = makeBtn(
+            Main,
+            text,
+            UDim2.new(xScale or LEFT_X, 0, 0, yPixel),
+            UDim2.new(widthScale or 0.9, 0, 0, BTN_HEIGHT),
+            cfg
+        )
         table.insert(strokes, stroke)
         return btn
     end
 
-    -- ── WalkSpeed ─────────────────────────────────────────────────────────────
-    local SpeedBtn = addBtn("WALKSPEED: " .. tostring(_G_WalkSpeed), BTN_START)
+    -- ── Linha 1: WalkSpeed | Server Hop ──────────────────────────────────────
+    local SpeedBtn = addBtn("WALKSPEED: " .. tostring(_G_WalkSpeed), LEFT_X, BTN_START, HALF_W)
     stored.SpeedBtn = SpeedBtn
     SpeedBtn.MouseButton1Click:Connect(function()
         local newSpeed = Movement.CycleSpeed(cfg.WALK_SPEED_CYCLE)
         SpeedBtn.Text  = "WALKSPEED: " .. tostring(newSpeed)
     end)
 
-    -- ── Loja de Frutas ────────────────────────────────────────────────────────
-    local FruitBtn = addBtn("OPEN FRUIT SHOP", BTN_START + BTN_STEP)
+    local HopBtn = addBtn("SERVER HOP", RIGHT_X, BTN_START, HALF_W)
+    stored.HopBtn = HopBtn
+    HopBtn.MouseButton1Click:Connect(function()
+        ServerHop.Hop()
+    end)
+
+    -- ── Linha 2: Emote | Fly ─────────────────────────────────────────────────
+    local Emotes = ctx.Emotes
+    local EmoteBtn = addBtn("EMOTE", LEFT_X, BTN_START + BTN_STEP, HALF_W)
+    stored.EmoteBtn = EmoteBtn
+    EmoteBtn.MouseButton1Click:Connect(function()
+        if Emotes and type(Emotes.Toggle) == "function" then
+            Emotes.Toggle()
+            EmoteBtn.Text = Emotes.IsOpen() and "EMOTE: ON" or "EMOTE"
+        end
+    end)
+
+    local FlyBtn = addBtn(_G_Fly and "FLY: ON" or "FLY: OFF", RIGHT_X, BTN_START + BTN_STEP, HALF_W)
+    stored.FlyBtn = FlyBtn
+    FlyBtn.MouseButton1Click:Connect(function()
+        if Fly and type(Fly.Toggle) == "function" then
+            local enabled = Fly.Toggle()
+            FlyBtn.Text = enabled and "FLY: ON" or "FLY: OFF"
+        end
+    end)
+
+    -- ── Linha 3: Fruit Shop | Food BP ───────────────────────────────────────
+    local FruitBtn = addBtn("OPEN FRUIT SHOP", LEFT_X, BTN_START + BTN_STEP * 2, HALF_W)
     stored.FruitBtn = FruitBtn
     FruitBtn.MouseButton1Click:Connect(function()
         pcall(function()
@@ -85,51 +118,16 @@ function Buttons.Build(Main, ctx)
         end)
     end)
 
-    -- ── TP para Aliado ────────────────────────────────────────────────────────
-    local TPBtn = addBtn("🚀 EXTRAÇÃO TP", BTN_START + BTN_STEP * 2)
-    stored.TPBtn = TPBtn
-    TPBtn.MouseButton1Click:Connect(function()
-        Teleport.ToAlly()
-    end)
-
-    -- ── FOOD BIG PETS ────────────────────────────────────────────────────────
-    local BigPetsFeedBtn = addBtn(_G_BigPetsFeed and "FOOD BIG PETS: ON" or "FOOD BIG PETS: OFF", BTN_START + BTN_STEP * 3)
+    local BigPetsFeedBtn = addBtn(_G_BigPetsFeed and "FOOD BP: ON" or "FOOD BP: OFF", RIGHT_X, BTN_START + BTN_STEP * 2, HALF_W)
+    BigPetsFeedBtn.TextSize = 9
     stored.BigPetsFeedBtn = BigPetsFeedBtn
     BigPetsFeedBtn.MouseButton1Click:Connect(function()
         _G_BigPetsFeed = not _G_BigPetsFeed
-        BigPetsFeedBtn.Text = _G_BigPetsFeed and "FOOD BIG PETS: ON" or "FOOD BIG PETS: OFF"
+        BigPetsFeedBtn.Text = _G_BigPetsFeed and "FOOD BP: ON" or "FOOD BP: OFF"
         if _G_BigPetsFeed and BigPetFeed and type(BigPetFeed.Pulse) == "function" then
             task.spawn(function()
                 pcall(function() BigPetFeed.Pulse() end)
             end)
-        end
-    end)
-
-    -- ── Server Hop ────────────────────────────────────────────────────────────
-    local HopBtn = addBtn("SERVER HOP (EXTRAÇÃO)", BTN_START + BTN_STEP * 4)
-    stored.HopBtn = HopBtn
-    HopBtn.MouseButton1Click:Connect(function()
-        ServerHop.Hop()
-    end)
-
-    -- ── Emotes ────────────────────────────────────────────────────────────────
-    local Emotes = ctx.Emotes
-    local EmoteBtn = addBtn("EMOTE", BTN_START + BTN_STEP * 5)
-    stored.EmoteBtn = EmoteBtn
-    EmoteBtn.MouseButton1Click:Connect(function()
-        if Emotes and type(Emotes.Toggle) == "function" then
-            Emotes.Toggle()
-            EmoteBtn.Text = Emotes.IsOpen() and "EMOTE: ON" or "EMOTE"
-        end
-    end)
-
-    -- ── Fly ─────────────────────────────────────────────────────────────────
-    local FlyBtn = addBtn(_G_Fly and "FLY: ON" or "FLY: OFF", BTN_START + BTN_STEP * 6)
-    stored.FlyBtn = FlyBtn
-    FlyBtn.MouseButton1Click:Connect(function()
-        if Fly and type(Fly.Toggle) == "function" then
-            local enabled = Fly.Toggle()
-            FlyBtn.Text = enabled and "FLY: ON" or "FLY: OFF"
         end
     end)
 
