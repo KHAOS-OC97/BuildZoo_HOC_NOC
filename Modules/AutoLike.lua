@@ -29,26 +29,18 @@ local function canLike()
 end
 
 local function tryLike()
-    if not canLike() then
-        print("[AutoLike] Não permitido ou alvo ausente.")
-        return
-    end
+    if not canLike() then return end
     local btn = waitForLikeButton(10)
     if btn and btn:IsA("ImageButton") then
-        print("[AutoLike] Botão LikeBtn encontrado, tentando acionar eventos...")
         pcall(function()
             btn.MouseButton1Click:Fire()
             btn.MouseButton1Down:Fire()
             btn.MouseButton1Up:Fire()
         end)
-    else
-        print("[AutoLike] Botão LikeBtn não encontrado!")
     end
 end
 
 local function Init()
-    print("[AutoLike] Inicializando...")
-    -- Tenta curtir ao entrar e periodicamente
     task.spawn(function()
         task.wait(3)
         tryLike()
@@ -57,7 +49,6 @@ local function Init()
         task.wait(2)
         tryLike()
     end)
-    -- Tenta curtir a cada 30 segundos
     task.spawn(function()
         while true do
             task.wait(30)
