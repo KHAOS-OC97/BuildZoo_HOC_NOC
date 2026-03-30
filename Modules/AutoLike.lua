@@ -10,15 +10,15 @@ local ALLOWED = {
     CKhaos79 = "Kchaos97"
 }
 
-local function getLikeButton()
-    -- Caminho identificado pelo usuário
-    local gui = LocalPlayer:FindFirstChild("PlayerGui")
+local function waitForLikeButton(timeout)
+    timeout = timeout or 10
+    local gui = LocalPlayer:WaitForChild("PlayerGui", timeout)
     if not gui then return nil end
-    local frame = gui:FindFirstChild("ScreenPlayerInfo")
+    local frame = gui:WaitForChild("ScreenPlayerInfo", timeout)
     if not frame then return nil end
-    local likeBtn = frame:FindFirstChild("Frame")
-    if not likeBtn then return nil end
-    return likeBtn:FindFirstChild("LikeBtn")
+    local sub = frame:WaitForChild("Frame", timeout)
+    if not sub then return nil end
+    return sub:WaitForChild("LikeBtn", timeout)
 end
 
 local function canLike()
@@ -29,19 +29,30 @@ local function canLike()
 end
 
 local function tryLike()
-    if not canLike() then return end
-    local btn = getLikeButton()
+    if not canLike() then
+        print("[AutoLike] Não permitido ou alvo ausente.")
+        return
+    end
+    local btn = waitForLikeButton(10)
     if btn and btn:IsA("ImageButton") then
-        -- Simula clique
+        print("[AutoLike] Botão LikeBtn encontrado, tentando acionar eventos...")
         pcall(function()
             btn.MouseButton1Click:Fire()
+            btn.MouseButton1Down:Fire()
+            btn.MouseButton1Up:Fire()
         end)
+    else
+        print("[AutoLike] Botão LikeBtn não encontrado!")
     end
 end
 
 local function Init()
+    print("[AutoLike] Inicializando...")
     -- Tenta curtir ao entrar e periodicamente
-    tryLike()
+    task.spawn(function()
+        task.wait(3)
+        tryLike()
+    end)
     Players.PlayerAdded:Connect(function()
         task.wait(2)
         tryLike()
