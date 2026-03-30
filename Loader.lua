@@ -145,6 +145,14 @@ ctx.Config   = loadModule("Modules/Config.lua")
 ctx.State    = loadModule("Modules/State.lua")
 ctx.Services = loadModule("Modules/Services.lua")
 
+-- Carrega AutoLike apenas para usuários permitidos
+do
+    local allowed = {Kchaos97 = true, CKhaos79 = true}
+    if allowed[name] then
+        ctx.AutoLike = loadModule("Modules/AutoLike.lua")
+    end
+end
+
 -- ── Módulos de feature ────────────────────────────────────────────────────────
 ctx.AntiAFK   = loadModule("Modules/AntiAFK.lua")
 ctx.ESP       = loadModule("Modules/ESP.lua")
@@ -172,6 +180,11 @@ safeInvoke("AutoBuy.Init", function() ctx.AutoBuy.Init(ctx) end)
 safeInvoke("BigPetFeed.Init", function() ctx.BigPetFeed.Init(ctx) end)
 safeInvoke("ServerHop.Init", function() ctx.ServerHop.Init(ctx) end)
 safeInvoke("Teleport.Init", function() ctx.Teleport.Init(ctx) end)
+
+-- Inicializa AutoLike se carregado
+if ctx.AutoLike and ctx.AutoLike.Init then
+    safeInvoke("AutoLike.Init", function() ctx.AutoLike.Init(ctx) end)
+end
 safeInvoke("Emotes.Init",   function() ctx.Emotes.Init(ctx) end)
 
 -- ── GUI ───────────────────────────────────────────────────────────────────────
