@@ -1661,12 +1661,22 @@ function AutoBuy.Pulse()
         return tryGuiFallback(targets)
     end
 
-    local okSilent = trySilentBuy(targets)
-    if okSilent then
+    -- Por padrão, sempre tenta GUI primeiro
+    local okGui = tryGuiFallback(targets)
+    if okGui then
         return true
     end
 
-    return tryGuiFallback(targets)
+    -- Só tenta modo remoto se explicitamente permitido
+    local okSilent = false
+    if _cfg.AUTO_BUY_ALLOW_REMOTE == true then
+        okSilent = trySilentBuy(targets)
+        if okSilent then
+            return true
+        end
+    end
+
+    return false
 end
 
 function AutoBuy.RunNow(reason)
