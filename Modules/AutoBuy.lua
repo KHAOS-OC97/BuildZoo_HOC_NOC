@@ -1239,10 +1239,19 @@ buttonIsSafeCoinTarget = function(button)
 
     local nameSig = normalize(button.Name)
     local textSig = normalize(getGuiText(button))
+    -- Reforço: só aceita botões explicitamente de coin
     if _cfg and _cfg.AUTO_BUY_STRICT_COIN_ONLY == true then
-        if nameSig ~= "buybutton" and textSig ~= "buy" and textSig ~= "purchase" then
+        if nameSig ~= "buybutton" then
             return false
         end
+        if textSig ~= "buy" and textSig ~= "purchase" then
+            return false
+        end
+    end
+
+    -- Nunca aceita botões que tenham qualquer menção a robux
+    if isRobuxLike(nameSig) or isRobuxLike(textSig) then
+        return false
     end
 
     if not isLeftPurchaseSlot(button) then
@@ -1255,6 +1264,10 @@ buttonIsSafeCoinTarget = function(button)
 
     for _, container in ipairs(collectCandidateContainers(button)) do
         if container and cardLooksOutOfStock(container) then
+            return false
+        end
+        -- Reforço: nunca aceita container com sinais de robux
+        if containerHasRobuxSignals(container) then
             return false
         end
     end
