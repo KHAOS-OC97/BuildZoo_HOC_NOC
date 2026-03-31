@@ -474,6 +474,13 @@ end
 local function buildScannerLines()
     local lines = {}
     local remotes = {}
+    -- Limita frequência do scanner pesado
+    if (_runtime.LastScan and (os.clock() - _runtime.LastScan) < 2) then
+        table.insert(lines, "[SCAN] Aguarde antes de nova varredura pesada.")
+        return lines
+    end
+    _runtime.LastScan = os.clock()
+
     local remotesOk, remotesResult = pcall(function()
         return collectObservedRemoteCandidates(true)
     end)
@@ -484,7 +491,7 @@ local function buildScannerLines()
     end
     table.insert(lines, "[SCAN] remotes candidatos: " .. tostring(#remotes))
 
-    local remoteLimit = math.min(#remotes, 12)
+    local remoteLimit = math.min(#remotes, 6)
     for i = 1, remoteLimit do
         local remote = remotes[i]
         table.insert(lines, string.format(
@@ -496,87 +503,28 @@ local function buildScannerLines()
         ))
     end
 
+    -- Scanner de GUI leve: só conta roots e botões, sem varrer tudo
     local pg = _svc and _svc.LocalPlayer and _svc.LocalPlayer:FindFirstChild("PlayerGui")
     if not pg then
         table.insert(lines, "[GUI] PlayerGui nao encontrado")
         return lines
     end
 
-    local guiOk, guiErr = pcall(function()
-        local function scannerVisible(element)
-            if not element or not element.Parent then return false end
-
-            local current = element
-            while current do
-                if current:IsA("GuiObject") and current.Visible == false then
-                    return false
+    local roots = {}
+    local seenRoots = {}
+    for _, obj in ipairs(pg:GetChildren()) do
+        local sig = normalize(obj.Name)
+        for _, kw in ipairs(_cfg.FRUIT_SHOP_KEYWORDS or {}) do
+            if sig:find(normalize(kw), 1, true) then
+                if not seenRoots[obj] then
+                    seenRoots[obj] = true
+                    table.insert(roots, obj)
                 end
-                if current:IsA("ScreenGui") and current.Enabled == false then
-                    return false
-                end
-                current = current.Parent
-            end
-            return true
-        end
-
-        local roots = {}
-        local seenRoots = {}
-        for _, obj in ipairs(pg:GetDescendants()) do
-            if scannerVisible(obj) then
-                local sig = normalize(obj.Name)
-                for _, kw in ipairs(_cfg.FRUIT_SHOP_KEYWORDS or {}) do
-                    if sig:find(normalize(kw), 1, true) then
-                        if not seenRoots[obj] then
-                            seenRoots[obj] = true
-                            table.insert(roots, obj)
-                        end
-                        break
-                    end
-                end
+                break
             end
         end
-
-        table.insert(lines, "[SCAN] roots da loja: " .. tostring(#roots))
-        local rootLimit = math.min(#roots, 6)
-        for i = 1, rootLimit do
-            table.insert(lines, string.format("[ROOT %02d] %s", i, getObjectLabel(roots[i])))
-        end
-
-        local buttonCount = 0
-        for _, obj in ipairs(pg:GetDescendants()) do
-            local isButton = obj and (obj:IsA("TextButton") or obj:IsA("ImageButton"))
-            if isButton and scannerVisible(obj) then
-                local nameSig = normalize(obj.Name)
-                if nameSig == "buybutton" or nameSig == "robuxbuybutton" then
-                    buttonCount = buttonCount + 1
-                    if buttonCount <= 12 then
-                        local safe = false
-                        local robux = false
-                        pcall(function()
-                            safe = buttonIsSafeCoinTarget and buttonIsSafeCoinTarget(obj) or false
-                        end)
-                        pcall(function()
-                            robux = isRobuxButton and isRobuxButton(obj) or false
-                        end)
-                        table.insert(lines, string.format(
-                            "[BTN %02d] %s | text=%s | safe=%s | robux=%s",
-                            buttonCount,
-                            getObjectLabel(obj),
-                            tostring(getGuiText(obj)),
-                            tostring(safe),
-                            tostring(robux)
-                        ))
-                    end
-                end
-            end
-        end
-        table.insert(lines, "[SCAN] botoes Buy/Robux visiveis: " .. tostring(buttonCount))
-    end)
-
-    if not guiOk then
-        table.insert(lines, "[SCAN-ERR] GUI scanner falhou: " .. tostring(guiErr))
     end
-
+    table.insert(lines, "[SCAN] roots da loja (leve): " .. tostring(#roots))
     return lines
 end
 
@@ -1419,9 +1367,11 @@ local function invokeRemote(remote, args)
     for _, v in ipairs(args) do
         if type(v) == "string" and (v:lower():find("robux") or v:lower():find("gamepass") or v:lower():find("devproduct")) then
             setRobuxGuard("tentativa remota suspeita")
+            appendDiagnosticLogLines({"[ERR] Argumento bloqueado: ", tostring(v), "Args:", table.concat(args, ", ")})
             return false, "robux-blocked", nil
         end
     end
+    appendDiagnosticLogLines({"[DEBUG] Enviando remote:", remote and remote:GetFullName() or "?", "Args:", table.concat(args, ", ")})
     pcall(function()
         if remote:IsA("RemoteEvent") then
             remote:FireServer(unpack(args))
