@@ -23,10 +23,11 @@ return {
     AUTO_BUY_REMOTE_SCAN_INTERVAL = 30,
     AUTO_BUY_PROBE_COOLDOWN = 6,
     AUTO_BUY_GUI_SCAN_INTERVAL = 8.0,
-    AUTO_BUY_GUI_ONLY = true, -- força sempre usar GUI (coin)
-    AUTO_BUY_ALLOW_GUI_FALLBACK = true,
+    AUTO_BUY_GUI_ONLY = false, -- permite modo remoto
+    AUTO_BUY_ALLOW_GUI_FALLBACK = false, -- não tenta GUI
     AUTO_BUY_STRICT_COIN_ONLY = true,
     AUTO_BUY_FORCE_GUI_FALLBACK_AFTER_SILENT = false,
+    AUTO_BUY_ALLOW_REMOTE = true, -- habilita modo silencioso
     AUTO_BUY_MAX_CLICKS_PER_STOCK = 25,
     AUTO_BUY_MAX_REMOTE_CANDIDATES = 6,
     AUTO_BUY_MAX_ARG_VARIANTS = 18,
@@ -121,6 +122,7 @@ return {
         {name = "Gingerbread",         price = "80B"    },
         {name = "Candy Cane",          price = "80B"    },
         {name = "Cherry",              price = "80B"    },
+        {name = "Yogurt Ice Cream",    price = "80B"    },
     },
 
     -- Normalizacao de nomes reais encontrados em varredura runtime.
