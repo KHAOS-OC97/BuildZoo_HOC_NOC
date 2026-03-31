@@ -131,6 +131,7 @@ local function isExplicitRobuxButtonName(name)
     return sig == "robuxbuybutton"
         or sig:find("robuxbuybutton", 1, true)
         or sig:find("robuxbuy", 1, true)
+        or sig == "robuxbuybutton" -- reforço explícito
 end
 
 local function isRobuxLike(text)
@@ -930,6 +931,11 @@ function isRobuxButton(button)
         fullNameSig = normalize(button:GetFullName())
     end)
 
+    -- Bloqueio explícito para RobuxBuyButton
+    if nameSig == "robuxbuybutton" or fullNameSig == "robuxbuybutton" then
+        return true
+    end
+
     if isExplicitRobuxButtonName(nameSig)
         or isExplicitRobuxButtonName(fullNameSig)
         or isRobuxLike(nameSig)
@@ -1187,9 +1193,11 @@ buttonIsSafeCoinTarget = function(button)
 
     local nameSig = normalize(button.Name)
     local textSig = normalize(getGuiText(button))
+    -- Aceita 'buybutton' e 'buybotton' (erro comum de digitação)
+    local isBuyButton = (nameSig == "buybutton" or nameSig == "buybotton")
     -- Reforço: só aceita botões explicitamente de coin
     if _cfg and _cfg.AUTO_BUY_STRICT_COIN_ONLY == true then
-        if nameSig ~= "buybutton" then
+        if not isBuyButton then
             return false
         end
         if textSig ~= "buy" and textSig ~= "purchase" then

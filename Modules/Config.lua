@@ -170,6 +170,18 @@ return {
             path = "PetFood/Acorn",
             aliases = {"Acorn", "PetFood/Acorn"},
         },
+        ["Pumpkin"] = {
+            path = "PetFood/Pumpkin",
+            aliases = {"Pumpkin", "pumpkin", "PetFood/Pumpkin"},
+        },
+        ["Gingerbread"] = {
+            path = "PetFood/Gingerbread",
+            aliases = {"Gingerbread", "gingerbread", "PetFood/Gingerbread"},
+        },
+        ["Yogurt Ice Cream"] = {
+            path = "PetFood/YogurtIceCream",
+            aliases = {"Yogurt Ice Cream", "YogurtIceCream", "yogurt ice cream", "PetFood/YogurtIceCream"},
+        },
     },
 
     -- Paleta de cores centralizada
