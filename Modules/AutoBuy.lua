@@ -1415,6 +1415,13 @@ local function invokeRemote(remote, args)
     local ok = false
     local kind = "unknown"
     local result = nil
+    -- Proteção: aborta se argumentos sugerirem compra por robux
+    for _, v in ipairs(args) do
+        if type(v) == "string" and (v:lower():find("robux") or v:lower():find("gamepass") or v:lower():find("devproduct")) then
+            setRobuxGuard("tentativa remota suspeita")
+            return false, "robux-blocked", nil
+        end
+    end
     pcall(function()
         if remote:IsA("RemoteEvent") then
             remote:FireServer(unpack(args))
@@ -1462,6 +1469,7 @@ local function trySilentBuy(targets)
     local amount = math.max(1, tonumber(_G_BuyAmount) or 1)
     local probeBudget = math.max(1, tonumber(_cfg.AUTO_BUY_MAX_PROBES_PER_FRUIT) or 6)
     local yieldEvery = math.max(1, tonumber(_cfg.AUTO_BUY_INVOKE_YIELD_EVERY) or 8)
+    local yieldCount = 0
     local targetBatch = collectTargetBatch(targets)
     updateDebugText(buildSilentDebugLines(targets, statusByFruit, "[HIDDEN] Allowlist ativa | " .. summarizeRemoteCandidates(observedRemotes)))
 
@@ -1524,6 +1532,12 @@ local function trySilentBuy(targets)
                         probeIndex = 1
                     end
 
+                    if kind == "robux-blocked" then
+                        statusByFruit[fruitName] = "[ERR] " .. fruitName .. " -> tentativa de compra por robux bloqueada"
+                        setRobuxGuard("tentativa remota suspeita")
+                        break
+                    end
+
                     if ok then
                         anyAttempt = true
                         fruitHadAttempt = true
@@ -1542,8 +1556,9 @@ local function trySilentBuy(targets)
                         end
                     end
 
-                    if (_ % yieldEvery) == 0 then
-                        task.wait()
+                    yieldCount = yieldCount + 1
+                    if yieldCount % yieldEvery == 0 then
+                        task.wait(0.01)
                     end
                 end
 
@@ -1577,6 +1592,7 @@ local function tryGuiFallback(targets)
         return false
     end
     if robuxGuardActive() then
+        updateDebugText({"[ERR] RobuxGuard ativo, fallback GUI bloqueado"})
         return false
     end
 
@@ -1614,7 +1630,7 @@ local function tryGuiFallback(targets)
                     if cardLooksOutOfStock(entry.button.Parent) then break end
                     if not activateButton(entry.button) then break end
                     clicked = true
-                    task.wait(_cfg.AUTO_BUY_REQUEST_SPACING or 0.08)
+                    task.wait(0.01)
                 end
                 if clicked then
                     _runtime.LastPurchaseAttempt[fruitName] = now
