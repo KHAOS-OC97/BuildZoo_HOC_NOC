@@ -1,22 +1,35 @@
 -- Utilitário: abrir/fechar loja de frutas via lógica do botão principal
+local _cachedFruitShopPanel = nil
 local function setFruitShopVisible(visible)
     local pg = _svc and _svc.LocalPlayer and _svc.LocalPlayer:FindFirstChild("PlayerGui")
     if not pg then return end
-    -- Procura só o primeiro Frame/ScreenGui relevante
+    -- Usa cache se possível
+    if _cachedFruitShopPanel and _cachedFruitShopPanel.Parent then
+        if _cachedFruitShopPanel:IsA("ScreenGui") then
+            _cachedFruitShopPanel.Enabled = visible
+        else
+            _cachedFruitShopPanel.Visible = visible
+            if _cachedFruitShopPanel.Parent and (_cachedFruitShopPanel.Parent:IsA("Frame") or _cachedFruitShopPanel.Parent:IsA("CanvasGroup")) then
+                _cachedFruitShopPanel.Parent.Visible = true
+            end
+        end
+        return
+    end
+    -- Busca e cacheia na primeira vez
     for _, v in ipairs(pg:GetChildren()) do
         local n = v.Name:lower()
         for _, kw in ipairs(_cfg.FRUIT_SHOP_KEYWORDS or {}) do
             if n:find(kw) then
+                _cachedFruitShopPanel = v
                 if v:IsA("ScreenGui") then
                     v.Enabled = visible
-                    return
-                elseif v:IsA("Frame") or v:IsA("CanvasGroup") or v:IsA("ScrollingFrame") then
+                else
                     v.Visible = visible
                     if v.Parent and (v.Parent:IsA("Frame") or v.Parent:IsA("CanvasGroup")) then
                         v.Parent.Visible = true
                     end
-                    return
                 end
+                return
             end
         end
     end
