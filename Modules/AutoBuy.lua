@@ -1611,47 +1611,41 @@ local function tryGuiFallback(targets)
         local entry = shop[fruitName]
         if not entry then
             appendDiagnosticLogLines({'[DEBUG] Não encontrou entry para: '..tostring(fruitName)})
-        end
-        if entry and entry.button and entry.button.Parent then
+        elseif entry and entry.button and entry.button.Parent then
             local strictCoinOnly = (_cfg.AUTO_BUY_STRICT_COIN_ONLY == true)
             if not buttonIsSafeCoinTarget(entry.button) then
                 appendDiagnosticLogLines({'[DEBUG] Botão não é coin target: '..tostring(fruitName)})
-                goto continue
-            end
-            if strictCoinOnly then
+            elseif strictCoinOnly and (function()
                 local nm = normalize(entry.button.Name)
                 local tx = normalize(getGuiText(entry.button))
-                if nm ~= "buybutton" and tx ~= "buy" and tx ~= "purchase" then
-                    appendDiagnosticLogLines({'[DEBUG] Botão não é buybutton/buy/purchase: '..tostring(fruitName)})
-                    goto continue
-                end
-            end
-            if strictCoinOnly and isRobuxButton(entry.button) then
+                return nm ~= "buybutton" and tx ~= "buy" and tx ~= "purchase"
+            end)() then
+                appendDiagnosticLogLines({'[DEBUG] Botão não é buybutton/buy/purchase: '..tostring(fruitName)})
+            elseif strictCoinOnly and isRobuxButton(entry.button) then
                 appendDiagnosticLogLines({'[DEBUG] Botão é de Robux: '..tostring(fruitName)})
-                goto continue
-            end
-            local last = _runtime.LastPurchaseAttempt[fruitName] or 0
-            if (now - last) >= fruitCooldown then
-                local clicked = false
-                for _ = 1, maxClicksPerStock do
-                    if buttonHasLocalNoStock(entry.button) then break end
-                    if cardLooksOutOfStock(entry.button.Parent) then break end
-                    if not activateButton(entry.button) then break end
-                    clicked = true
-                    task.wait(0.01)
-                end
-                if clicked then
-                    _runtime.LastPurchaseAttempt[fruitName] = now
-                    any = true
-                    appendDiagnosticLogLines({'[DEBUG] Comprou: '..tostring(fruitName)})
-                else
-                    appendDiagnosticLogLines({'[DEBUG] Não conseguiu clicar: '..tostring(fruitName)})
+            else
+                local last = _runtime.LastPurchaseAttempt[fruitName] or 0
+                if (now - last) >= fruitCooldown then
+                    local clicked = false
+                    for _ = 1, maxClicksPerStock do
+                        if buttonHasLocalNoStock(entry.button) then break end
+                        if cardLooksOutOfStock(entry.button.Parent) then break end
+                        if not activateButton(entry.button) then break end
+                        clicked = true
+                        task.wait(0.01)
+                    end
+                    if clicked then
+                        _runtime.LastPurchaseAttempt[fruitName] = now
+                        any = true
+                        appendDiagnosticLogLines({'[DEBUG] Comprou: '..tostring(fruitName)})
+                    else
+                        appendDiagnosticLogLines({'[DEBUG] Não conseguiu clicar: '..tostring(fruitName)})
+                    end
                 end
             end
         else
             appendDiagnosticLogLines({'[DEBUG] Entry/button inválido para: '..tostring(fruitName)})
         end
-        ::continue::
     end
 
     -- Fechar loja de frutas
