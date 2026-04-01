@@ -1582,10 +1582,12 @@ local function trySilentBuy(targets)
     return anyReliableSuccess, anyAttempt
 end
 
+
 local function tryGuiFallback(targets)
     -- Abrir loja de frutas
     setFruitShopVisible(true)
-    task.wait(0.25) -- Pequeno delay para garantir renderização
+    task.wait(0.7) -- Delay maior para garantir renderização
+    appendDiagnosticLogLines({'[DEBUG] Loja de frutas aberta, iniciando busca de botões...'})
 
     if not (_cfg.AUTO_BUY_ALLOW_GUI_FALLBACK == true) then
         return false
@@ -1599,6 +1601,7 @@ local function tryGuiFallback(targets)
     if not pg then return false end
 
     local shop = refreshShop(pg, targets)
+    appendDiagnosticLogLines({'[DEBUG] Shop entries encontrados: '..tostring(shop and (table.concat((function() local t={} for k in pairs(shop) do table.insert(t,k) end; return t end)(),', ') or 'nenhum'))})
     local any = false
     local now = os.clock()
     local fruitCooldown = _cfg.AUTO_BUY_FRUIT_COOLDOWN or 20
@@ -1606,20 +1609,26 @@ local function tryGuiFallback(targets)
 
     for fruitName in pairs(targets) do
         local entry = shop[fruitName]
+        if not entry then
+            appendDiagnosticLogLines({'[DEBUG] Não encontrou entry para: '..tostring(fruitName)})
+        end
         if entry and entry.button and entry.button.Parent then
             local strictCoinOnly = (_cfg.AUTO_BUY_STRICT_COIN_ONLY == true)
             if not buttonIsSafeCoinTarget(entry.button) then
-                continue
+                appendDiagnosticLogLines({'[DEBUG] Botão não é coin target: '..tostring(fruitName)})
+                goto continue
             end
             if strictCoinOnly then
                 local nm = normalize(entry.button.Name)
-                            local tx = normalize(getGuiText(entry.button))
+                local tx = normalize(getGuiText(entry.button))
                 if nm ~= "buybutton" and tx ~= "buy" and tx ~= "purchase" then
-                    continue
+                    appendDiagnosticLogLines({'[DEBUG] Botão não é buybutton/buy/purchase: '..tostring(fruitName)})
+                    goto continue
                 end
             end
             if strictCoinOnly and isRobuxButton(entry.button) then
-                continue
+                appendDiagnosticLogLines({'[DEBUG] Botão é de Robux: '..tostring(fruitName)})
+                goto continue
             end
             local last = _runtime.LastPurchaseAttempt[fruitName] or 0
             if (now - last) >= fruitCooldown then
@@ -1634,9 +1643,15 @@ local function tryGuiFallback(targets)
                 if clicked then
                     _runtime.LastPurchaseAttempt[fruitName] = now
                     any = true
+                    appendDiagnosticLogLines({'[DEBUG] Comprou: '..tostring(fruitName)})
+                else
+                    appendDiagnosticLogLines({'[DEBUG] Não conseguiu clicar: '..tostring(fruitName)})
                 end
             end
+        else
+            appendDiagnosticLogLines({'[DEBUG] Entry/button inválido para: '..tostring(fruitName)})
         end
+        ::continue::
     end
 
     -- Fechar loja de frutas
