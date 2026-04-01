@@ -16,18 +16,18 @@ return {
     ANTI_AFK_INTERVAL = 60,
 
     -- AutoBuy (modo silencioso por remotes)
-    AUTO_BUY_LOOP_INTERVAL = 1.0,
+    AUTO_BUY_LOOP_INTERVAL = 210, -- 3min30s
     AUTO_BUY_SILENT_SWEEP = 5,
     AUTO_BUY_FRUIT_COOLDOWN = 20,
     AUTO_BUY_REQUEST_SPACING = 0.08,
     AUTO_BUY_REMOTE_SCAN_INTERVAL = 30,
     AUTO_BUY_PROBE_COOLDOWN = 6,
     AUTO_BUY_GUI_SCAN_INTERVAL = 8.0,
-    AUTO_BUY_GUI_ONLY = false, -- permite modo remoto
-    AUTO_BUY_ALLOW_GUI_FALLBACK = false, -- não tenta GUI
-    AUTO_BUY_STRICT_COIN_ONLY = true,
+    AUTO_BUY_GUI_ONLY = true, -- só modo GUI
+    AUTO_BUY_ALLOW_GUI_FALLBACK = true, -- ativa fallback GUI
+    AUTO_BUY_STRICT_COIN_ONLY = true, -- só dinheiro do jogo
     AUTO_BUY_FORCE_GUI_FALLBACK_AFTER_SILENT = false,
-    AUTO_BUY_ALLOW_REMOTE = true, -- habilita modo silencioso
+    AUTO_BUY_ALLOW_REMOTE = false, -- desativa modo silencioso
     AUTO_BUY_MAX_CLICKS_PER_STOCK = 25,
     AUTO_BUY_MAX_REMOTE_CANDIDATES = 6,
     AUTO_BUY_MAX_ARG_VARIANTS = 18,
