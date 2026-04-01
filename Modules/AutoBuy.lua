@@ -1620,7 +1620,7 @@ local function tryGuiFallback(targets)
     end
 
     for fruitName, entry in pairs(shop) do
-        repeat
+        do
             if not entry or not entry.button or not entry.button.Parent then
                 appendDiagnosticLogLines({'[DEBUG] Entry/button inválido para: '..tostring(fruitName)})
                 break
@@ -1698,7 +1698,7 @@ local function tryGuiFallback(targets)
                 any = true
                 appendDiagnosticLogLines({'[DEBUG] Comprou: '..tostring(fruitName)})
             end
-        until true
+        end
     end
 
     -- Fechar loja de frutas
