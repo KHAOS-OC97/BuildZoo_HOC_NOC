@@ -1583,11 +1583,12 @@ local function trySilentBuy(targets)
 end
 
 
+
 local function tryGuiFallback(targets)
     -- Abrir loja de frutas
     setFruitShopVisible(true)
-    task.wait(0.7) -- Delay maior para garantir renderização
-    appendDiagnosticLogLines({'[DEBUG] Loja de frutas aberta, iniciando busca de botões...'})
+    task.wait(0.5)
+    appendDiagnosticLogLines({'[DEBUG] Loja aberta, iniciando fluxo manual...'})
 
     if not (_cfg.AUTO_BUY_ALLOW_GUI_FALLBACK == true) then
         return false
@@ -1605,13 +1606,23 @@ local function tryGuiFallback(targets)
     local any = false
     local now = os.clock()
     local fruitCooldown = _cfg.AUTO_BUY_FRUIT_COOLDOWN or 20
-    local maxClicksPerStock = math.max(1, tonumber(_cfg.AUTO_BUY_MAX_CLICKS_PER_STOCK) or 25)
 
-    for fruitName in pairs(targets) do
-        local entry = shop[fruitName]
-        if not entry then
-            appendDiagnosticLogLines({'[DEBUG] Não encontrou entry para: '..tostring(fruitName)})
-        elseif entry and entry.button and entry.button.Parent then
+    -- Função utilitária para encontrar painel de compra aberto
+    local function findOpenBuyPanel()
+        for _, gui in ipairs(pg:GetDescendants()) do
+            if gui:IsA("Frame") or gui:IsA("CanvasGroup") then
+                if isElementVisible(gui) and gui.Name:lower():find("buy") and gui:FindFirstChildWhichIsA("TextButton") then
+                    return gui
+                end
+            end
+        end
+        return nil
+    end
+
+    for fruitName, entry in pairs(shop) do
+        if not entry or not entry.button or not entry.button.Parent then
+            appendDiagnosticLogLines({'[DEBUG] Entry/button inválido para: '..tostring(fruitName)})
+        else
             local strictCoinOnly = (_cfg.AUTO_BUY_STRICT_COIN_ONLY == true)
             if not buttonIsSafeCoinTarget(entry.button) then
                 appendDiagnosticLogLines({'[DEBUG] Botão não é coin target: '..tostring(fruitName)})
@@ -1626,26 +1637,63 @@ local function tryGuiFallback(targets)
             else
                 local last = _runtime.LastPurchaseAttempt[fruitName] or 0
                 if (now - last) >= fruitCooldown then
-                    local clicked = false
-                    for _ = 1, maxClicksPerStock do
-                        if buttonHasLocalNoStock(entry.button) then break end
-                        if cardLooksOutOfStock(entry.button.Parent) then break end
-                        if not activateButton(entry.button) then break end
-                        clicked = true
-                        task.wait(0.01)
+                    -- 1. Clicar na fruta para abrir painel
+                    if not activateButton(entry.button) then
+                        appendDiagnosticLogLines({'[DEBUG] Não conseguiu clicar na fruta: '..tostring(fruitName)})
+                        goto continue
                     end
-                    if clicked then
-                        _runtime.LastPurchaseAttempt[fruitName] = now
-                        any = true
-                        appendDiagnosticLogLines({'[DEBUG] Comprou: '..tostring(fruitName)})
-                    else
-                        appendDiagnosticLogLines({'[DEBUG] Não conseguiu clicar: '..tostring(fruitName)})
+                    task.wait(0.18)
+                    -- 2. Esperar painel abrir
+                    local buyPanel, buyBtn
+                    for _ = 1, 10 do
+                        buyPanel = findOpenBuyPanel()
+                        if buyPanel then
+                            for _, btn in ipairs(buyPanel:GetDescendants()) do
+                                if isGuiButton(btn) and buttonIsSafeCoinTarget(btn) then
+                                    buyBtn = btn
+                                    break
+                                end
+                            end
+                            if buyBtn then break end
+                        end
+                        task.wait(0.06)
                     end
+                    if not buyPanel or not buyBtn then
+                        appendDiagnosticLogLines({'[DEBUG] Painel/botão de compra não encontrado para: '..tostring(fruitName)})
+                        goto continue
+                    end
+                    -- 3. Clicar em "Buy"
+                    if not activateButton(buyBtn) then
+                        appendDiagnosticLogLines({'[DEBUG] Não conseguiu clicar em Buy: '..tostring(fruitName)})
+                        goto continue
+                    end
+                    task.wait(0.12)
+                    -- 4. Fechar painel (procurar botão X ou Close)
+                    local closed = false
+                    for _, btn in ipairs(buyPanel:GetDescendants()) do
+                        if isGuiButton(btn) then
+                            local txt = normalize(getGuiText(btn))
+                            local nm = normalize(btn.Name)
+                            if txt == "x" or txt == "close" or nm == "x" or nm:find("close",1,true) then
+                                pcall(function()
+                                    if typeof(firesignal) == "function" then firesignal(btn.MouseButton1Click) else btn:Activate() end
+                                end)
+                                closed = true
+                                break
+                            end
+                        end
+                    end
+                    if not closed then
+                        -- fallback: tentar esconder painel
+                        pcall(function() buyPanel.Visible = false end)
+                    end
+                    _runtime.LastPurchaseAttempt[fruitName] = now
+                    any = true
+                    appendDiagnosticLogLines({'[DEBUG] Comprou: '..tostring(fruitName)})
                 end
             end
-        else
-            appendDiagnosticLogLines({'[DEBUG] Entry/button inválido para: '..tostring(fruitName)})
         end
+        ::continue::
     end
 
     -- Fechar loja de frutas
