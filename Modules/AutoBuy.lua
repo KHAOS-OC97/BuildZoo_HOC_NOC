@@ -1,3 +1,27 @@
+-- Utilitário: abrir/fechar loja de frutas via lógica do botão principal
+local function setFruitShopVisible(visible)
+    local pg = _svc and _svc.LocalPlayer and _svc.LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return end
+    -- Procura só o primeiro Frame/ScreenGui relevante
+    for _, v in ipairs(pg:GetChildren()) do
+        local n = v.Name:lower()
+        for _, kw in ipairs(_cfg.FRUIT_SHOP_KEYWORDS or {}) do
+            if n:find(kw) then
+                if v:IsA("ScreenGui") then
+                    v.Enabled = visible
+                    return
+                elseif v:IsA("Frame") or v:IsA("CanvasGroup") or v:IsA("ScrollingFrame") then
+                    v.Visible = visible
+                    if v.Parent and (v.Parent:IsA("Frame") or v.Parent:IsA("CanvasGroup")) then
+                        v.Parent.Visible = true
+                    end
+                    return
+                end
+            end
+        end
+    end
+end
+
 --[[
     AutoBuy.lua — Compra automática com prioridade para compra silenciosa.
 
@@ -1546,6 +1570,10 @@ local function trySilentBuy(targets)
 end
 
 local function tryGuiFallback(targets)
+    -- Abrir loja de frutas
+    setFruitShopVisible(true)
+    task.wait(0.25) -- Pequeno delay para garantir renderização
+
     if not (_cfg.AUTO_BUY_ALLOW_GUI_FALLBACK == true) then
         return false
     end
@@ -1597,6 +1625,10 @@ local function tryGuiFallback(targets)
             end
         end
     end
+
+    -- Fechar loja de frutas
+    setFruitShopVisible(false)
+    task.wait(0.1)
 
     return any
 end
