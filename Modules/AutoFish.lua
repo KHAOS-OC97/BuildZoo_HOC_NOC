@@ -26,9 +26,9 @@ local function updateAutoFishState()
     end
 end
 
--- Atalho de teclado para ativar/desativar AutoFish (tecla R)
+
 local UserInputService = game:GetService("UserInputService")
-    -- Sincroniza o toggle do GUI com o estado do AutoFish
+local function setGuiToggleAutoFish(state)
     local playerGui = player:FindFirstChild("PlayerGui")
     if not playerGui then return end
     local gui = playerGui:FindFirstChild("HOC_NOC_ELITE_V6_4")
@@ -93,9 +93,16 @@ function AutoFish:Start()
             if not _G_AutoFish then
                 wait(0.2)
             else
-                -- Clique em qualquer lugar da tela, sem checar botão
-                VirtualInputManager:SendMouseButtonDown(CLICK_X, CLICK_Y, game, 0)
-                VirtualInputManager:SendMouseButtonUp(CLICK_X, CLICK_Y, game, 0)
+                print("[AutoFish] Tentando clicar na tela em:", CLICK_X, CLICK_Y)
+                local ok1, err1 = pcall(function()
+                    VirtualInputManager:SendMouseButtonDown(CLICK_X, CLICK_Y, game, 0)
+                end)
+                local ok2, err2 = pcall(function()
+                    VirtualInputManager:SendMouseButtonUp(CLICK_X, CLICK_Y, game, 0)
+                end)
+                if not ok1 or not ok2 then
+                    print("[AutoFish] Erro ao clicar:", err1 or err2)
+                end
                 wait(0.005)
             end
         end
