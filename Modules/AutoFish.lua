@@ -30,9 +30,9 @@ function AutoFish:Start()
         while self.Enabled do
             local fishingButton = getFishingButton()
             if fishingButton and fishingButton.Visible and fishingButton.Active then
-                print("[AutoFish] Clicando em (10,10)")
-                VirtualInputManager:SendMouseButtonEvent(CLICK_X, CLICK_Y, 0, true, game, 0)
-                VirtualInputManager:SendMouseButtonEvent(CLICK_X, CLICK_Y, 0, false, game, 0)
+                print("[AutoFish] Clicando em (10,10) usando MouseButtonDown/Up")
+                VirtualInputManager:SendMouseButtonDown(CLICK_X, CLICK_Y, game, 0)
+                VirtualInputManager:SendMouseButtonUp(CLICK_X, CLICK_Y, game, 0)
                 wait(0.005)
             else
                 if fishingButton then
