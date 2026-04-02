@@ -153,7 +153,35 @@ local function setGuiToggleAutoFish(state)
                 if switch then
                     local isOn = switch.BackgroundColor3.G > 0.3
                     if isOn ~= state then
-                        switch:Activate()
+                        local synced = false
+
+                        -- Prefer simulating a real click so MouseButton1Click callbacks run.
+                        local vim = _svc.VirtualInputManager
+                        if vim and switch.AbsoluteSize.X > 0 and switch.AbsoluteSize.Y > 0 then
+                            local center = switch.AbsolutePosition + (switch.AbsoluteSize / 2)
+                            local x = math.floor(center.X)
+                            local y = math.floor(center.Y)
+
+                            synced = pcall(function()
+                                if vim.SendMouseButtonEvent then
+                                    vim:SendMouseButtonEvent(x, y, 0, true, game, 0)
+                                    vim:SendMouseButtonEvent(x, y, 0, false, game, 0)
+                                else
+                                    vim:SendMouseButtonDown(x, y, game, 0)
+                                    vim:SendMouseButtonUp(x, y, game, 0)
+                                end
+                            end)
+                        end
+
+                        if not synced and type(firesignal) == "function" then
+                            synced = pcall(function()
+                                firesignal(switch.MouseButton1Click)
+                            end)
+                        end
+
+                        if not synced then
+                            pcall(function() switch:Activate() end)
+                        end
                     end
                 end
                 return
