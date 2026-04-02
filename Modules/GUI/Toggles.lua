@@ -60,12 +60,12 @@ function Toggles.Build(Main, ctx)
 
     -- Posições absolutas em pixels (Y) para evitar sobreposição com botões
     local defs = {
-        {"MAGNET STEALTH",      UDim2.new(0.05, 0, 0,  35), _G_AutoCollect, function(v) _G_AutoCollect = v end},
-        {"AUTO-BUILD REMOTE",   UDim2.new(0.05, 0, 0,  63), _G_AutoBuild,   function(v) _G_AutoBuild   = v end},
-        {"AUTO-GIFTS (GUI)",    UDim2.new(0.05, 0, 0,  91), _G_AutoGifts,   function(v) _G_AutoGifts   = v end},
-        {"JUMP INFINITY",       UDim2.new(0.05, 0, 0, 119), _G_InfJump,     function(v) _G_InfJump     = v end},
-        {"MAX RANGE ESP (RGB)", UDim2.new(0.05, 0, 0, 147), _G_ESP,         function(v) _G_ESP         = v end},
-        {"ANTI-AFK MARINES",    UDim2.new(0.05, 0, 0, 175), _G_AntiAFK,     function(v)
+        {"AUTOFISH",           UDim2.new(0.05, 0, 0,  35), _G_AutoFish, function(v) _G_AutoFish = v end},
+        {"AUTO-BUILD REMOTE",  UDim2.new(0.05, 0, 0,  63), _G_AutoBuild,   function(v) _G_AutoBuild   = v end},
+        {"AUTO-GIFTS (GUI)",   UDim2.new(0.05, 0, 0,  91), _G_AutoGifts,   function(v) _G_AutoGifts   = v end},
+        {"JUMP INFINITY",      UDim2.new(0.05, 0, 0, 119), _G_InfJump,     function(v) _G_InfJump     = v end},
+        {"MAX RANGE ESP (RGB)",UDim2.new(0.05, 0, 0, 147), _G_ESP,         function(v) _G_ESP         = v end},
+        {"ANTI-AFK MARINES",   UDim2.new(0.05, 0, 0, 175), _G_AntiAFK,     function(v)
             _G_AntiAFK = v
             if v and ctx.AntiAFK and type(ctx.AntiAFK.Ping) == "function" then
                 task.spawn(function()
