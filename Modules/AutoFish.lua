@@ -12,17 +12,27 @@ local player = Players.LocalPlayer
 local AutoFish = {}
 AutoFish.Enabled = false
 
+-- Inicializa _G_AutoFish se não existir
+if _G_AutoFish == nil then _G_AutoFish = false end
+
+-- Função para garantir que o loop está rodando conforme o estado global
+local function updateAutoFishState()
+    if _G_AutoFish and not AutoFish.Enabled then
+        print("[AutoFish] Ativando AutoFish pelo estado global!")
+        AutoFish:Start()
+    elseif not _G_AutoFish and AutoFish.Enabled then
+        print("[AutoFish] Desativando AutoFish pelo estado global!")
+        AutoFish:Stop()
+    end
+end
+
 -- Atalho de teclado para ativar/desativar AutoFish (tecla R)
 local UserInputService = game:GetService("UserInputService")
 UserInputService.InputBegan:Connect(function(input, processed)
     if not processed and input.KeyCode == Enum.KeyCode.R then
         _G_AutoFish = not _G_AutoFish
         print("[AutoFish] Toggle via tecla R:", _G_AutoFish)
-        if _G_AutoFish then
-            AutoFish:Start()
-        else
-            AutoFish:Stop()
-        end
+        updateAutoFishState()
     end
 end)
 
@@ -50,6 +60,7 @@ local function fireFishingRemote()
 end
 
 function AutoFish:Start()
+    if self.Enabled then return end
     print("[AutoFish] Start chamado!")
     self.Enabled = true
     spawn(function()
@@ -57,27 +68,36 @@ function AutoFish:Start()
         while self.Enabled do
             if not _G_AutoFish then
                 wait(0.2)
-                continue
-            end
-            local fishingButton = getFishingButton()
-            if fishingButton and fishingButton.Visible and fishingButton.Active then
-                print("[AutoFish] Disparando RemoteEvent de pescaria (template)")
-                fireFishingRemote()
-                wait(0.05)
             else
-                if fishingButton then
-                    print("[AutoFish] Botão não visível ou inativo.")
+                local fishingButton = getFishingButton()
+                if fishingButton and fishingButton.Visible and fishingButton.Active then
+                    print("[AutoFish] Disparando RemoteEvent de pescaria (template)")
+                    fireFishingRemote()
+                    wait(0.05)
                 else
-                    print("[AutoFish] Botão de pescaria não encontrado.")
+                    if fishingButton then
+                        print("[AutoFish] Botão não visível ou inativo.")
+                    else
+                        print("[AutoFish] Botão de pescaria não encontrado.")
+                    end
+                    wait(0.2)
                 end
-                wait(0.2)
             end
         end
     end)
 end
 
 function AutoFish:Stop()
+    if not self.Enabled then return end
+    print("[AutoFish] Stop chamado!")
     self.Enabled = false
 end
+
+
+-- Garante que o estado inicial está correto ao carregar o módulo
+task.spawn(function()
+    wait(0.5)
+    updateAutoFishState()
+end)
 
 return AutoFish
