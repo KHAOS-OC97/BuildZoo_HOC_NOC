@@ -28,14 +28,9 @@ function AutoFish:Start()
         while self.Enabled do
             local fishingButton = getFishingButton()
             if fishingButton and fishingButton.Visible and fishingButton.Active then
-                -- Calcula o centro do botão na tela
-                local absPos = fishingButton.AbsolutePosition
-                local absSize = fishingButton.AbsoluteSize
-                local clickX = absPos.X + absSize.X / 2
-                local clickY = absPos.Y + absSize.Y / 2
-                print("[AutoFish] Clicando em:", clickX, clickY)
-                VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, true, game, 0)
-                VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, false, game, 0)
+                -- Clica em um ponto fixo da tela, sem interferir no mouse real
+                VirtualInputManager:SendMouseButtonEvent(CLICK_X, CLICK_Y, 0, true, game, 0)
+                VirtualInputManager:SendMouseButtonEvent(CLICK_X, CLICK_Y, 0, false, game, 0)
                 wait(0.005)
             else
                 if fishingButton then
