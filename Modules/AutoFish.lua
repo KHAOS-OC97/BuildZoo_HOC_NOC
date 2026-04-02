@@ -58,17 +58,24 @@ local function notifyAutoFish(isEnabled)
     local sg = Instance.new("ScreenGui")
     sg.Name = guiName
     sg.ResetOnSpawn = false
+    sg.IgnoreGuiInset = true
+    sg.DisplayOrder = 9999
+    sg.Enabled = true
     sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-    pcall(function() sg.Parent = game:GetService("CoreGui") end)
+    local parented = pcall(function()
+        sg.Parent = game:GetService("CoreGui")
+    end)
+
     if not sg.Parent then
-        local playerGui = player:FindFirstChild("PlayerGui")
+        local playerGui = player:FindFirstChild("PlayerGui") or player:WaitForChild("PlayerGui", 5)
         if playerGui then
             sg.Parent = playerGui
         end
     end
 
     if not sg.Parent then
+        print("[AutoFish] Notify GUI not parented. CoreGui ok: " .. tostring(parented))
         print("[AutoFish] " .. (isEnabled and "AutoFish enabled (R)." or "AutoFish disabled (R)."))
         return
     end
@@ -80,6 +87,7 @@ local function notifyAutoFish(isEnabled)
     frame.BackgroundColor3 = isEnabled and Color3.fromRGB(30, 30, 30) or Color3.fromRGB(40, 10, 10)
     frame.BackgroundTransparency = 0.15
     frame.BorderSizePixel = 0
+    frame.ZIndex = 10000
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
     local stroke = Instance.new("UIStroke", frame)
@@ -105,6 +113,7 @@ local function notifyAutoFish(isEnabled)
     lbl.Font = Enum.Font.GothamBold
     lbl.TextSize = 16
     lbl.TextXAlignment = Enum.TextXAlignment.Center
+    lbl.ZIndex = 10001
     lbl.TextColor3 = isEnabled and Color3.fromRGB(0, 220, 90) or Color3.fromRGB(255, 60, 60)
     lbl.Text = isEnabled and "[AutoFish] ENABLED (R)" or "[AutoFish] DISABLED (R)"
 
