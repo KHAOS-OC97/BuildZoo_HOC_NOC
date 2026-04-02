@@ -30,7 +30,7 @@ function AutoFish:Start()
             if fishingButton and fishingButton.Visible then
                 VirtualInputManager:SendMouseButtonEvent(CLICK_X, CLICK_Y, 0, true, game, 0)
                 VirtualInputManager:SendMouseButtonEvent(CLICK_X, CLICK_Y, 0, false, game, 0)
-                wait(0.05)
+                wait(0.005)
             else
                 wait(0.2)
             end
