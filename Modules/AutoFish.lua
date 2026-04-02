@@ -28,26 +28,20 @@ end
 
 -- Atalho de teclado para ativar/desativar AutoFish (tecla R)
 local UserInputService = game:GetService("UserInputService")
-local function setGuiToggleAutoFish(state)
-    -- Tenta sincronizar o toggle do GUI com o estado do AutoFish
+    -- Sincroniza o toggle do GUI com o estado do AutoFish
     local playerGui = player:FindFirstChild("PlayerGui")
-    if playerGui then
-        local gui = playerGui:FindFirstChild("HOC_NOC_ELITE_V6_4")
-        if gui then
-            local main = gui:FindFirstChild("Main")
-            if main then
-                for _, frame in ipairs(main:GetChildren()) do
-                    if frame:IsA("Frame") and frame:FindFirstChild("TextLabel") and frame.TextLabel.Text == "AUTOFISH" then
-                        local switch = frame:FindFirstChildWhichIsA("TextButton")
-                        if switch then
-                            -- Simula clique se o estado visual não estiver igual ao global
-                            local bg = switch.BackgroundColor3
-                            local isOn = (bg.r > 0.1 and bg.g > 0.3)
-                            if isOn ~= state then
-                                switch:Activate()
-                            end
-                        end
-                    end
+    if not playerGui then return end
+    local gui = playerGui:FindFirstChild("HOC_NOC_ELITE_V6_4")
+    if not gui then return end
+    local main = gui:FindFirstChild("Main")
+    if not main then return end
+    for _, frame in ipairs(main:GetChildren()) do
+        if frame:IsA("Frame") and frame:FindFirstChild("TextLabel") and frame.TextLabel.Text == "AUTOFISH" then
+            local switch = frame:FindFirstChildWhichIsA("TextButton")
+            if switch then
+                -- O toggle é ativado/desativado via MouseButton1Click
+                if switch:IsA("TextButton") then
+                    switch:FireEvent("MouseButton1Click")
                 end
             end
         end
