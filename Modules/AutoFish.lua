@@ -28,13 +28,15 @@ end
 
 -- Atalho de teclado para ativar/desativar AutoFish (tecla R)
 local UserInputService = game:GetService("UserInputService")
-UserInputService.InputBegan:Connect(function(input, processed)
-    if not processed and input.KeyCode == Enum.KeyCode.R then
+local function handleInput(input, processed)
+    if processed then return end
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.R then
         _G_AutoFish = not _G_AutoFish
         print("[AutoFish] Toggle via tecla R:", _G_AutoFish)
         updateAutoFishState()
     end
-end)
+end
+UserInputService.InputBegan:Connect(handleInput)
 
 -- Posição fixa para clicar (canto superior esquerdo, fora de menus)
 local CLICK_X, CLICK_Y = 10, 10
@@ -73,7 +75,7 @@ function AutoFish:Start()
                 if fishingButton and fishingButton.Visible and fishingButton.Active then
                     print("[AutoFish] Disparando RemoteEvent de pescaria (template)")
                     fireFishingRemote()
-                    wait(0.05)
+                    wait(0.02)
                 else
                     if fishingButton then
                         print("[AutoFish] Botão não visível ou inativo.")
