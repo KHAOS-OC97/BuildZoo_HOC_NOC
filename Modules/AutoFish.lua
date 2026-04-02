@@ -7,6 +7,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local StarterGui = game:GetService("StarterGui")
 local player = Players.LocalPlayer
 
 local AutoFish = {}
@@ -28,6 +29,24 @@ end
 
 
 local UserInputService = game:GetService("UserInputService")
+
+local function notifyAutoFish(isEnabled)
+    local statusText = isEnabled and "enabled" or "disabled"
+    local message = "AutoFish is now " .. statusText .. "."
+
+    local ok = pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = "AutoFish",
+            Text = message,
+            Duration = 2,
+        })
+    end)
+
+    if not ok then
+        print("[AutoFish] " .. message)
+    end
+end
+
     local playerGui = player:FindFirstChild("PlayerGui")
     if not playerGui then return end
     local gui = playerGui:FindFirstChild("HOC_NOC_ELITE_V6_4")
@@ -50,9 +69,9 @@ end
 
 local function handleInput(input, processed)
     if processed then return end
-    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.H then
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.R then
         _G_AutoFish = not _G_AutoFish
-        print("[AutoFish] Toggle via tecla H:", _G_AutoFish)
+        notifyAutoFish(_G_AutoFish)
         setGuiToggleAutoFish(_G_AutoFish)
         updateAutoFishState()
     end
