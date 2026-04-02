@@ -50,9 +50,9 @@ end
 
 local function handleInput(input, processed)
     if processed then return end
-    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.R then
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.H then
         _G_AutoFish = not _G_AutoFish
-        print("[AutoFish] Toggle via tecla R:", _G_AutoFish)
+        print("[AutoFish] Toggle via tecla H:", _G_AutoFish)
         setGuiToggleAutoFish(_G_AutoFish)
         updateAutoFishState()
     end
