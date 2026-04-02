@@ -13,6 +13,7 @@ _G_Running = true
 _G_AutoCollect = (_G_AutoCollect == nil) and false or _G_AutoCollect
 _G_AutoBuild   = (_G_AutoBuild   == nil) and false or _G_AutoBuild
 _G_AutoGifts   = (_G_AutoGifts   == nil) and false or _G_AutoGifts
+_G_AutoFish    = (_G_AutoFish    == nil) and false or _G_AutoFish
 _G_InfJump     = (_G_InfJump     == nil) and false or _G_InfJump
 _G_ESP         = (_G_ESP         == nil) and false or _G_ESP
 _G_AntiAFK     = (_G_AntiAFK     == nil) and false or _G_AntiAFK
