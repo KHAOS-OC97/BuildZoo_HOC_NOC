@@ -182,6 +182,31 @@ local function setGuiToggleAutoFish(state)
                         if not synced then
                             pcall(function() switch:Activate() end)
                         end
+
+                        -- Hard sync: some executors block synthetic click events.
+                        -- Force the same visual state used in GUI/Toggles.lua.
+                        local finalIsOn = switch.BackgroundColor3.G > 0.3
+                        if finalIsOn ~= state then
+                            local targetColor = state and Color3.fromRGB(0, 150, 80) or Color3.fromRGB(150, 0, 0)
+                            pcall(function()
+                                switch.BackgroundColor3 = targetColor
+                            end)
+
+                            local knob = nil
+                            for _, child in ipairs(switch:GetChildren()) do
+                                if child:IsA("Frame") then
+                                    knob = child
+                                    break
+                                end
+                            end
+
+                            if knob then
+                                local targetPos = state and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)
+                                pcall(function()
+                                    knob.Position = targetPos
+                                end)
+                            end
+                        end
                     end
                 end
                 return
