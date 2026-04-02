@@ -3,6 +3,8 @@
 -- Detecta a barra de pescaria e clica automaticamente, sem interferir no mouse do jogador
 
 
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
@@ -14,12 +16,23 @@ AutoFish.Enabled = false
 local CLICK_X, CLICK_Y = 10, 10
 
 -- Caminho do botão de pescaria
-local function getFishingButton()
     local gui = player:FindFirstChild("PlayerGui")
     if not gui then return nil end
     local screen = gui:FindFirstChild("ScreenFishing")
     if not screen then return nil end
     return screen:FindFirstChild("Fishing")
+end
+
+-- TEMPLATE: Disparar RemoteEvent de pescaria
+-- Substitua "FishingRemote" pelo nome correto do RemoteEvent quando descobrir
+local function fireFishingRemote()
+    local remote = ReplicatedStorage:FindFirstChild("FishingRemote")
+    if remote and remote:IsA("RemoteEvent") then
+        print("[AutoFish] Disparando FishingRemote!")
+        remote:FireServer()
+    else
+        print("[AutoFish] RemoteEvent de pescaria não encontrado!")
+    end
 end
 
 function AutoFish:Start()
@@ -30,15 +43,8 @@ function AutoFish:Start()
         while self.Enabled do
             local fishingButton = getFishingButton()
             if fishingButton and fishingButton.Visible and fishingButton.Active then
-                print("[AutoFish] Disparando MouseButton1Click:Fire() e Activate()")
-                -- Tenta disparar o evento MouseButton1Click diretamente
-                pcall(function()
-                    fishingButton.MouseButton1Click:Fire()
-                end)
-                -- Tenta chamar Activate()
-                pcall(function()
-                    fishingButton:Activate()
-                end)
+                print("[AutoFish] Disparando RemoteEvent de pescaria (template)")
+                fireFishingRemote()
                 wait(0.05)
             else
                 if fishingButton then
