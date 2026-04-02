@@ -33,7 +33,7 @@ function AutoFish:Start()
                 print("[AutoFish] Clicando em (10,10) usando MouseButtonDown/Up")
                 VirtualInputManager:SendMouseButtonDown(CLICK_X, CLICK_Y, game, 0)
                 VirtualInputManager:SendMouseButtonUp(CLICK_X, CLICK_Y, game, 0)
-                wait(0.005)
+                wait(0.0005)
             else
                 if fishingButton then
                     print("[AutoFish] Botão não visível ou inativo.")
