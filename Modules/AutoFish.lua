@@ -66,7 +66,8 @@ end
 UserInputService.InputBegan:Connect(handleInput)
 
 -- Posição do botão de pescaria (centro)
-local CLICK_X, CLICK_Y = 1690 + 151/2, 491 + 151/2
+-- Clique em qualquer lugar da tela (exemplo: 100,100)
+local CLICK_X, CLICK_Y = 100, 100
 
 -- Caminho do botão de pescaria
     local gui = player:FindFirstChild("PlayerGui")
@@ -98,20 +99,10 @@ function AutoFish:Start()
             if not _G_AutoFish then
                 wait(0.2)
             else
-                local fishingButton = getFishingButton()
-                if fishingButton and fishingButton.Visible and fishingButton.Active then
-                    print("[AutoFish] Clicando nas coordenadas do botão de pescaria:", CLICK_X, CLICK_Y)
-                    VirtualInputManager:SendMouseButtonDown(CLICK_X, CLICK_Y, game, 0)
-                    VirtualInputManager:SendMouseButtonUp(CLICK_X, CLICK_Y, game, 0)
-                    wait(0.005)
-                else
-                    if fishingButton then
-                        print("[AutoFish] Botão não visível ou inativo.")
-                    else
-                        print("[AutoFish] Botão de pescaria não encontrado.")
-                    end
-                    wait(0.2)
-                end
+                -- Clique em qualquer lugar da tela, sem checar botão
+                VirtualInputManager:SendMouseButtonDown(CLICK_X, CLICK_Y, game, 0)
+                VirtualInputManager:SendMouseButtonUp(CLICK_X, CLICK_Y, game, 0)
+                wait(0.005)
             end
         end
     end)
