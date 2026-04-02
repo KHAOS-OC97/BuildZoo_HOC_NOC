@@ -28,11 +28,38 @@ end
 
 -- Atalho de teclado para ativar/desativar AutoFish (tecla R)
 local UserInputService = game:GetService("UserInputService")
+local function setGuiToggleAutoFish(state)
+    -- Tenta sincronizar o toggle do GUI com o estado do AutoFish
+    local playerGui = player:FindFirstChild("PlayerGui")
+    if playerGui then
+        local gui = playerGui:FindFirstChild("HOC_NOC_ELITE_V6_4")
+        if gui then
+            local main = gui:FindFirstChild("Main")
+            if main then
+                for _, frame in ipairs(main:GetChildren()) do
+                    if frame:IsA("Frame") and frame:FindFirstChild("TextLabel") and frame.TextLabel.Text == "AUTOFISH" then
+                        local switch = frame:FindFirstChildWhichIsA("TextButton")
+                        if switch then
+                            -- Simula clique se o estado visual não estiver igual ao global
+                            local bg = switch.BackgroundColor3
+                            local isOn = (bg.r > 0.1 and bg.g > 0.3)
+                            if isOn ~= state then
+                                switch:Activate()
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
 local function handleInput(input, processed)
     if processed then return end
     if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.R then
         _G_AutoFish = not _G_AutoFish
         print("[AutoFish] Toggle via tecla R:", _G_AutoFish)
+        setGuiToggleAutoFish(_G_AutoFish)
         updateAutoFishState()
     end
 end
@@ -76,7 +103,7 @@ function AutoFish:Start()
                     print("[AutoFish] Clicando nas coordenadas do botão de pescaria:", CLICK_X, CLICK_Y)
                     VirtualInputManager:SendMouseButtonDown(CLICK_X, CLICK_Y, game, 0)
                     VirtualInputManager:SendMouseButtonUp(CLICK_X, CLICK_Y, game, 0)
-                    wait(0.02)
+                    wait(0.005)
                 else
                     if fishingButton then
                         print("[AutoFish] Botão não visível ou inativo.")
