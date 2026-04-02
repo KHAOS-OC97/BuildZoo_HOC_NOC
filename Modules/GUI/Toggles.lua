@@ -8,7 +8,7 @@
 
 local Toggles = {}
 
-local function createToggle(parent, label, pos, cfg, svc, initialState, callback)
+local function createToggle(parent, label, pos, cfg, svc, initialState, callback, stateProvider)
     local Container                    = Instance.new("Frame", parent)
     Container.Size                     = UDim2.new(0.9, 0, 0, 25)
     Container.Position                 = pos
@@ -52,6 +52,25 @@ local function createToggle(parent, label, pos, cfg, svc, initialState, callback
         svc.TweenService:Create(SwitchBG, TweenInfo.new(0.2), {BackgroundColor3 = targetColor}):Play()
         callback(state)
     end)
+
+    -- Mantem o toggle sincronizado quando o estado muda fora da GUI (ex.: hotkeys).
+    if type(stateProvider) == "function" and svc.RunService then
+        local syncConn
+        syncConn = svc.RunService.Heartbeat:Connect(function()
+            if not Container.Parent then
+                if syncConn then
+                    pcall(function() syncConn:Disconnect() end)
+                end
+                return
+            end
+
+            local desired = stateProvider() and true or false
+            if desired ~= state then
+                state = desired
+                applyState(state)
+            end
+        end)
+    end
 end
 
 function Toggles.Build(Main, ctx)
@@ -60,11 +79,11 @@ function Toggles.Build(Main, ctx)
 
     -- Posições absolutas em pixels (Y) para evitar sobreposição com botões
     local defs = {
-        {"AUTOFISH",           UDim2.new(0.05, 0, 0,  35), _G_AutoFish, function(v) _G_AutoFish = v end},
-        {"AUTO-BUILD REMOTE",  UDim2.new(0.05, 0, 0,  63), _G_AutoBuild,   function(v) _G_AutoBuild   = v end},
-        {"AUTO-GIFTS (GUI)",   UDim2.new(0.05, 0, 0,  91), _G_AutoGifts,   function(v) _G_AutoGifts   = v end},
-        {"JUMP INFINITY",      UDim2.new(0.05, 0, 0, 119), _G_InfJump,     function(v) _G_InfJump     = v end},
-        {"MAX RANGE ESP (RGB)",UDim2.new(0.05, 0, 0, 147), _G_ESP,         function(v) _G_ESP         = v end},
+        {"AUTOFISH",           UDim2.new(0.05, 0, 0,  35), _G_AutoFish, function(v) _G_AutoFish = v end, function() return _G_AutoFish end},
+        {"AUTO-BUILD REMOTE",  UDim2.new(0.05, 0, 0,  63), _G_AutoBuild, function(v) _G_AutoBuild = v end, function() return _G_AutoBuild end},
+        {"AUTO-GIFTS (GUI)",   UDim2.new(0.05, 0, 0,  91), _G_AutoGifts, function(v) _G_AutoGifts = v end, function() return _G_AutoGifts end},
+        {"JUMP INFINITY",      UDim2.new(0.05, 0, 0, 119), _G_InfJump,   function(v) _G_InfJump = v end, function() return _G_InfJump end},
+        {"MAX RANGE ESP (RGB)",UDim2.new(0.05, 0, 0, 147), _G_ESP,       function(v) _G_ESP = v end, function() return _G_ESP end},
         {"ANTI-AFK MARINES",   UDim2.new(0.05, 0, 0, 175), _G_AntiAFK,     function(v)
             _G_AntiAFK = v
             if v and ctx.AntiAFK and type(ctx.AntiAFK.Ping) == "function" then
@@ -72,11 +91,11 @@ function Toggles.Build(Main, ctx)
                     pcall(function() ctx.AntiAFK.Ping() end)
                 end)
             end
-        end},
+        end, function() return _G_AntiAFK end},
     }
 
     for _, def in ipairs(defs) do
-        createToggle(Main, def[1], def[2], cfg, svc, def[3], def[4])
+        createToggle(Main, def[1], def[2], cfg, svc, def[3], def[4], def[5])
     end
 end
 

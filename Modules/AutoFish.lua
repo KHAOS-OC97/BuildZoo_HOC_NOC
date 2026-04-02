@@ -131,90 +131,6 @@ local function notifyAutoFish(isEnabled)
     end)
 end
 
-local function setGuiToggleAutoFish(state)
-    local player = _svc.LocalPlayer
-    if not player then return end
-
-    local playerGui = player:FindFirstChild("PlayerGui")
-    if not playerGui then return end
-
-    local guiName = (_cfg and _cfg.GUI_NAME) or DEFAULT_GUI_NAME
-    local gui = playerGui:FindFirstChild(guiName)
-    if not gui then return end
-
-    local main = gui:FindFirstChild("Main")
-    if not main then return end
-
-    for _, frame in ipairs(main:GetChildren()) do
-        if frame:IsA("Frame") then
-            local label = frame:FindFirstChild("TextLabel")
-            if label and label:IsA("TextLabel") and label.Text == "AUTOFISH" then
-                local switch = frame:FindFirstChildWhichIsA("TextButton")
-                if switch then
-                    local isOn = switch.BackgroundColor3.G > 0.3
-                    if isOn ~= state then
-                        local synced = false
-
-                        -- Prefer simulating a real click so MouseButton1Click callbacks run.
-                        local vim = _svc.VirtualInputManager
-                        if vim and switch.AbsoluteSize.X > 0 and switch.AbsoluteSize.Y > 0 then
-                            local center = switch.AbsolutePosition + (switch.AbsoluteSize / 2)
-                            local x = math.floor(center.X)
-                            local y = math.floor(center.Y)
-
-                            synced = pcall(function()
-                                if vim.SendMouseButtonEvent then
-                                    vim:SendMouseButtonEvent(x, y, 0, true, game, 0)
-                                    vim:SendMouseButtonEvent(x, y, 0, false, game, 0)
-                                else
-                                    vim:SendMouseButtonDown(x, y, game, 0)
-                                    vim:SendMouseButtonUp(x, y, game, 0)
-                                end
-                            end)
-                        end
-
-                        if not synced and type(firesignal) == "function" then
-                            synced = pcall(function()
-                                firesignal(switch.MouseButton1Click)
-                            end)
-                        end
-
-                        if not synced then
-                            pcall(function() switch:Activate() end)
-                        end
-
-                        -- Hard sync: some executors block synthetic click events.
-                        -- Force the same visual state used in GUI/Toggles.lua.
-                        local finalIsOn = switch.BackgroundColor3.G > 0.3
-                        if finalIsOn ~= state then
-                            local targetColor = state and Color3.fromRGB(0, 150, 80) or Color3.fromRGB(150, 0, 0)
-                            pcall(function()
-                                switch.BackgroundColor3 = targetColor
-                            end)
-
-                            local knob = nil
-                            for _, child in ipairs(switch:GetChildren()) do
-                                if child:IsA("Frame") then
-                                    knob = child
-                                    break
-                                end
-                            end
-
-                            if knob then
-                                local targetPos = state and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)
-                                pcall(function()
-                                    knob.Position = targetPos
-                                end)
-                            end
-                        end
-                    end
-                end
-                return
-            end
-        end
-    end
-end
-
 local function getFishingButton()
     local player = _svc.LocalPlayer
     if not player then return nil end
@@ -294,7 +210,6 @@ local function handleInput(input, processed)
 
     _G_AutoFish = not _G_AutoFish
     notifyAutoFish(_G_AutoFish)
-    setGuiToggleAutoFish(_G_AutoFish)
     updateAutoFishState()
 end
 
