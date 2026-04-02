@@ -5,7 +5,7 @@ local AutoFish = {}
 AutoFish.Enabled = false
 
 local DEFAULT_GUI_NAME = "HOC_NOC_ELITE_V6_4"
-local CLICK_INTERVAL = 0.06
+local CLICK_INTERVAL = 0.006
 
 local _cfg
 local _svc
@@ -33,18 +33,93 @@ local function getServices()
 end
 
 local function notifyAutoFish(isEnabled)
-    local message = isEnabled and "AutoFish enabled (R)." or "AutoFish disabled (R)."
-    local ok = pcall(function()
-        _svc.StarterGui:SetCore("SendNotification", {
-            Title = "AutoFish",
-            Text = message,
-            Duration = 2,
-        })
+    local player = _svc.LocalPlayer
+    if not player then
+        print("[AutoFish] " .. (isEnabled and "AutoFish enabled (R)." or "AutoFish disabled (R)."))
+        return
+    end
+
+    local guiName = "HOC_NOC_AutoFish_Notify"
+    local oldGui = nil
+
+    pcall(function()
+        oldGui = game:GetService("CoreGui"):FindFirstChild(guiName)
+    end)
+    if not oldGui then
+        local pg = player:FindFirstChild("PlayerGui")
+        if pg then
+            oldGui = pg:FindFirstChild(guiName)
+        end
+    end
+    if oldGui then
+        pcall(function() oldGui:Destroy() end)
+    end
+
+    local sg = Instance.new("ScreenGui")
+    sg.Name = guiName
+    sg.ResetOnSpawn = false
+    sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    pcall(function() sg.Parent = game:GetService("CoreGui") end)
+    if not sg.Parent then
+        local playerGui = player:FindFirstChild("PlayerGui")
+        if playerGui then
+            sg.Parent = playerGui
+        end
+    end
+
+    if not sg.Parent then
+        print("[AutoFish] " .. (isEnabled and "AutoFish enabled (R)." or "AutoFish disabled (R)."))
+        return
+    end
+
+    local frame = Instance.new("Frame", sg)
+    frame.AnchorPoint = Vector2.new(0.5, 0)
+    frame.Position = UDim2.new(0.5, 0, 0.12, 0)
+    frame.Size = UDim2.new(0, 420, 0, 52)
+    frame.BackgroundColor3 = isEnabled and Color3.fromRGB(30, 30, 30) or Color3.fromRGB(40, 10, 10)
+    frame.BackgroundTransparency = 0.15
+    frame.BorderSizePixel = 0
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+    local stroke = Instance.new("UIStroke", frame)
+    stroke.Color = Color3.fromRGB(255, 0, 0)
+    stroke.Thickness = 2
+
+    local rgbRunning = true
+    task.spawn(function()
+        local t = 0
+        while rgbRunning and frame.Parent do
+            t = t + task.wait()
+            local r = math.floor(math.sin(t * 2) * 127 + 128)
+            local g = math.floor(math.sin(t * 2 + 2.094) * 127 + 128)
+            local b = math.floor(math.sin(t * 2 + 4.189) * 127 + 128)
+            stroke.Color = Color3.fromRGB(r, g, b)
+        end
     end)
 
-    if not ok then
-        print("[AutoFish] " .. message)
-    end
+    local lbl = Instance.new("TextLabel", frame)
+    lbl.Size = UDim2.new(1, -30, 1, 0)
+    lbl.Position = UDim2.new(0, 15, 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 16
+    lbl.TextXAlignment = Enum.TextXAlignment.Center
+    lbl.TextColor3 = isEnabled and Color3.fromRGB(0, 220, 90) or Color3.fromRGB(255, 60, 60)
+    lbl.Text = isEnabled and "[AutoFish] ENABLED (R)" or "[AutoFish] DISABLED (R)"
+
+    task.delay(2.6, function()
+        rgbRunning = false
+        pcall(function()
+            local tw = _svc.TweenService or game:GetService("TweenService")
+            local ti = TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            tw:Create(frame, ti, {BackgroundTransparency = 1}):Play()
+            tw:Create(lbl, ti, {TextTransparency = 1}):Play()
+            tw:Create(stroke, ti, {Transparency = 1}):Play()
+            task.wait(0.7)
+            sg:Destroy()
+        end)
+    end)
 end
 
 local function setGuiToggleAutoFish(state)
