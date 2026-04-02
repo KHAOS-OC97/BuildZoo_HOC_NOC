@@ -38,8 +38,8 @@ local function handleInput(input, processed)
 end
 UserInputService.InputBegan:Connect(handleInput)
 
--- Posição fixa para clicar (canto superior esquerdo, fora de menus)
-local CLICK_X, CLICK_Y = 10, 10
+-- Posição do botão de pescaria (centro)
+local CLICK_X, CLICK_Y = 1690 + 151/2, 491 + 151/2
 
 -- Caminho do botão de pescaria
     local gui = player:FindFirstChild("PlayerGui")
@@ -73,8 +73,9 @@ function AutoFish:Start()
             else
                 local fishingButton = getFishingButton()
                 if fishingButton and fishingButton.Visible and fishingButton.Active then
-                    print("[AutoFish] Disparando RemoteEvent de pescaria (template)")
-                    fireFishingRemote()
+                    print("[AutoFish] Clicando nas coordenadas do botão de pescaria:", CLICK_X, CLICK_Y)
+                    VirtualInputManager:SendMouseButtonDown(CLICK_X, CLICK_Y, game, 0)
+                    VirtualInputManager:SendMouseButtonUp(CLICK_X, CLICK_Y, game, 0)
                     wait(0.02)
                 else
                     if fishingButton then
