@@ -30,10 +30,16 @@ function AutoFish:Start()
         while self.Enabled do
             local fishingButton = getFishingButton()
             if fishingButton and fishingButton.Visible and fishingButton.Active then
-                print("[AutoFish] Clicando em (10,10) usando MouseButtonDown/Up")
-                VirtualInputManager:SendMouseButtonDown(CLICK_X, CLICK_Y, game, 0)
-                VirtualInputManager:SendMouseButtonUp(CLICK_X, CLICK_Y, game, 0)
-                wait(0.0005)
+                print("[AutoFish] Disparando MouseButton1Click:Fire() e Activate()")
+                -- Tenta disparar o evento MouseButton1Click diretamente
+                pcall(function()
+                    fishingButton.MouseButton1Click:Fire()
+                end)
+                -- Tenta chamar Activate()
+                pcall(function()
+                    fishingButton:Activate()
+                end)
+                wait(0.05)
             else
                 if fishingButton then
                     print("[AutoFish] Botão não visível ou inativo.")
