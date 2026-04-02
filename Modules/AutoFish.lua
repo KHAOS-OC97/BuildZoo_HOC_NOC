@@ -28,7 +28,6 @@ end
 
 
 local UserInputService = game:GetService("UserInputService")
-local function setGuiToggleAutoFish(state)
     local playerGui = player:FindFirstChild("PlayerGui")
     if not playerGui then return end
     local gui = playerGui:FindFirstChild("HOC_NOC_ELITE_V6_4")
@@ -39,9 +38,10 @@ local function setGuiToggleAutoFish(state)
         if frame:IsA("Frame") and frame:FindFirstChild("TextLabel") and frame.TextLabel.Text == "AUTOFISH" then
             local switch = frame:FindFirstChildWhichIsA("TextButton")
             if switch then
-                -- O toggle é ativado/desativado via MouseButton1Click
-                if switch:IsA("TextButton") then
-                    switch:FireEvent("MouseButton1Click")
+                -- Checa o estado visual do toggle
+                local isOn = (switch.BackgroundColor3.g > 0.3)
+                if isOn ~= state then
+                    switch:Activate()
                 end
             end
         end
