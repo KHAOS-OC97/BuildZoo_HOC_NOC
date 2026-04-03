@@ -7,7 +7,7 @@ local LocalPlayer = Players.LocalPlayer
 
 local ALLOWED = {
     Kchaos97 = "CKhaos79",
-    CKhaos79 = "Kchaos97"
+--    CKhaos79 = "Kchaos97"
 }
 
 local function waitForLikeButton(timeout)
