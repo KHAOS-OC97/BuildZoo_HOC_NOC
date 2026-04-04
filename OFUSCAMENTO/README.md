@@ -45,6 +45,8 @@ Quando os secrets estiverem definidos, o workflow publica automaticamente no rep
 - distOwner
 - distRepo
 - distBranch
+- allowedUsers (nomes autorizados)
+- allowedUserIds (opcional, UserId numerico para dupla validacao)
 
 3) No repo privado, adicione os secrets:
 

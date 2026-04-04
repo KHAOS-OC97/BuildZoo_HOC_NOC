@@ -12,13 +12,16 @@ local GITHUB_RAW_BASE =
     "https://raw.githubusercontent.com/KHAOS-OC97/BuildZoo_HOC_NOC/main/"
 
 local CACHE_BUSTER = tostring(os.time())
+local __HOC_AUTHORIZED = false
+local __HOC_PLAYER_NAME = ""
 
 -- ── Whitelist Security Check ──────────────────────────────────────────────────
 do
-    local ALLOWED_USERS = { ["KChaos97"] = true, ["CKhaos79"] = true }
+    local ALLOWED_USERS = { ["kchaos97"] = true, ["ckhaos79"] = true }
     local Players = game:GetService("Players")
     local player  = Players.LocalPlayer
     local name    = player and player.Name or ""
+    local normalizedName = string.lower(tostring(name))
 
     -- Build notification GUI
     local function showAccessNotification(granted)
@@ -82,11 +85,13 @@ do
         end)
     end
 
-    if not ALLOWED_USERS[name] then
+    if not ALLOWED_USERS[normalizedName] then
         showAccessNotification(false)
         return  -- abort script execution
     end
 
+    __HOC_AUTHORIZED = true
+    __HOC_PLAYER_NAME = name
     showAccessNotification(true)
 end
 
@@ -147,8 +152,7 @@ ctx.Services = loadModule("Modules/Services.lua")
 
 -- Carrega AutoLike apenas para usuários permitidos
 do
-    local allowed = {Kchaos97 = true, CKhaos79 = true}
-    if allowed[name] then
+    if __HOC_AUTHORIZED == true then
         ctx.AutoLike = loadModule("Modules/AutoLike.lua")
     end
 end
@@ -163,7 +167,8 @@ ctx.AutoBuy   = loadModule("Modules/AutoBuy.lua")
 ctx.BigPetFeed = loadModule("Modules/BigPetFeed.lua")
 ctx.ServerHop = loadModule("Modules/ServerHop.lua")
 ctx.Teleport  = loadModule("Modules/Teleport.lua")
-ctx.Emotes    = loadModule("Modules/Emotes.lua")ctx.CollectCoin = loadModule("Modules/CollectCoin.lua")
+ctx.Emotes    = loadModule("Modules/Emotes.lua")
+ctx.CollectCoin = loadModule("Modules/CollectCoin.lua")
 -- ── Módulos de GUI ────────────────────────────────────────────────────────────
 ctx.GUI = {
     Toggles   = loadModule("Modules/GUI/Toggles.lua"),

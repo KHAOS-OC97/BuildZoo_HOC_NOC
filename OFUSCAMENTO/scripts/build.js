@@ -53,7 +53,14 @@ function buildReleaseScript() {
   const version = getVersionLabel();
   const generatedAt = nowIso();
   const users = (settings.allowedUsers || [])
-    .map((u) => `${JSON.stringify(u)} = true`)
+    .map((u) => String(u || "").trim().toLowerCase())
+    .filter(Boolean)
+    .map((u) => `[${JSON.stringify(u)}] = true`)
+    .join(", ");
+  const userIds = (settings.allowedUserIds || [])
+    .map((id) => Number(id))
+    .filter((id) => Number.isInteger(id) && id > 0)
+    .map((id) => `[${id}] = true`)
     .join(", ");
 
   const modulesTable = buildModulesTable();
@@ -105,14 +112,29 @@ end
 
 do
     local ALLOWED_USERS = { ${users} }
+  local ALLOWED_USER_IDS = { ${userIds} }
+
+  local function normalizeName(v)
+    return string.lower(tostring(v or ""))
+  end
+
     local Players = game:GetService("Players")
     local player = Players.LocalPlayer
     local name = player and player.Name or ""
+  local userId = player and player.UserId or 0
+  local normalizedName = normalizeName(name)
 
-    if not ALLOWED_USERS[name] then
-        warn("[HOC NOC] Access denied for " .. tostring(name))
+  local hasNameRules = next(ALLOWED_USERS) ~= nil
+  local hasIdRules = next(ALLOWED_USER_IDS) ~= nil
+  local nameAllowed = (not hasNameRules) or (ALLOWED_USERS[normalizedName] == true)
+  local idAllowed = (not hasIdRules) or (ALLOWED_USER_IDS[userId] == true)
+
+  if not (nameAllowed and idAllowed) then
+    warn("[HOC NOC] Access denied")
         return
     end
+
+  _G.__HOC_AUTHORIZED = true
 end
 
 local ctx = {}
@@ -121,9 +143,7 @@ ctx.State = __hoc_loadModule("Modules/State.lua")
 ctx.Services = __hoc_loadModule("Modules/Services.lua")
 
 do
-    local allowed = { ["KChaos97"] = true, ["CKhaos79"] = true }
-    local playerName = game:GetService("Players").LocalPlayer.Name
-    if allowed[playerName] then
+  if _G.__HOC_AUTHORIZED == true then
         ctx.AutoLike = __hoc_loadModule("Modules/AutoLike.lua")
     end
 end
