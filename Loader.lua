@@ -18,9 +18,14 @@ local __HOC_PLAYER_NAME = ""
 -- ── Whitelist Security Check ──────────────────────────────────────────────────
 do
     local ALLOWED_USERS = { ["kchaos97"] = true, ["ckhaos79"] = true }
+    local ALLOWED_USER_IDS = {
+        [2242060908] = true,
+        [5019856388] = true,
+    }
     local Players = game:GetService("Players")
     local player  = Players.LocalPlayer
     local name    = player and player.Name or ""
+    local userId  = player and player.UserId or 0
     local normalizedName = string.lower(tostring(name))
 
     -- Build notification GUI
@@ -85,7 +90,12 @@ do
         end)
     end
 
-    if not ALLOWED_USERS[normalizedName] then
+    local hasNameRules = next(ALLOWED_USERS) ~= nil
+    local hasIdRules = next(ALLOWED_USER_IDS) ~= nil
+    local nameAllowed = (not hasNameRules) or (ALLOWED_USERS[normalizedName] == true)
+    local idAllowed = (not hasIdRules) or (ALLOWED_USER_IDS[userId] == true)
+
+    if not (nameAllowed and idAllowed) then
         showAccessNotification(false)
         return  -- abort script execution
     end

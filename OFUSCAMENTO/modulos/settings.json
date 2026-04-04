@@ -3,7 +3,10 @@
     "KChaos97",
     "CKhaos79"
   ],
-  "allowedUserIds": [],
+  "allowedUserIds": [
+    2242060908,
+    5019856388
+  ],
   "sourceEntry": "Main.lua",
   "distOwner": "KHAOS-OC97",
   "distRepo": "BuildZoo_HOC_NOC_DIST",
