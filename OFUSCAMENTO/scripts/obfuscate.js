@@ -21,10 +21,10 @@ function banner() {
 }
 
 function encodeSource(src) {
+  const bytes = Buffer.from(src, "utf8");
   const encoded = [];
-  for (let i = 0; i < src.length; i += 1) {
-    const byte = src.charCodeAt(i) & 0xff;
-    encoded.push((byte + 17) % 256);
+  for (let i = 0; i < bytes.length; i += 1) {
+    encoded.push((bytes[i] + 17) % 256);
   }
   return encoded;
 }
