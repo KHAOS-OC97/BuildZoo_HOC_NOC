@@ -19,7 +19,7 @@
 		{
 			"id": "token",
 			"type": "promptString",
-			"description": "",
+			"description": "GitHub Personal Access Token",
 			"password": true
 		}
 	]
