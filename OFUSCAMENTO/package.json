@@ -9,7 +9,5 @@
     "release:prepare": "npm run build && npm run obfuscate",
     "mirror": "node ./scripts/mirror.js"
   },
-  "dependencies": {
-    "luamin": "^1.0.4"
-  }
+  "dependencies": {}
 }
