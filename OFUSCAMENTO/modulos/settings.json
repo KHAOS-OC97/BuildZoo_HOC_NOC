@@ -1,0 +1,12 @@
+{
+  "allowedUsers": [
+    "KChaos97",
+    "CKhaos79"
+  ],
+  "sourceEntry": "Main.lua",
+  "distOwner": "KHAOS-OC97",
+  "distRepo": "BuildZoo_HOC_NOC_DIST",
+  "distBranch": "main",
+  "distScriptFile": "HOC_NOC.release.obf.lua",
+  "distLoaderFile": "Loader.release.lua"
+}

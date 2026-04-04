@@ -1,0 +1,21 @@
+[
+  "Modules/Config.lua",
+  "Modules/State.lua",
+  "Modules/Services.lua",
+  "Modules/AutoLike.lua",
+  "Modules/AntiAFK.lua",
+  "Modules/ESP.lua",
+  "Modules/Movement.lua",
+  "Modules/Fly.lua",
+  "Modules/AutoFish.lua",
+  "Modules/AutoBuy.lua",
+  "Modules/BigPetFeed.lua",
+  "Modules/ServerHop.lua",
+  "Modules/Teleport.lua",
+  "Modules/Emotes.lua",
+  "Modules/CollectCoin.lua",
+  "Modules/GUI/Toggles.lua",
+  "Modules/GUI/Buttons.lua",
+  "Modules/GUI/FruitMenu.lua",
+  "Modules/GUI/Core.lua"
+]

@@ -15,7 +15,7 @@ local CACHE_BUSTER = tostring(os.time())
 
 -- ── Whitelist Security Check ──────────────────────────────────────────────────
 do
-    local ALLOWED_USERS = { ["KChaos97"] = true, ["CKhaos79"] = false }
+    local ALLOWED_USERS = { ["KChaos97"] = true, ["CKhaos79"] = true }
     local Players = game:GetService("Players")
     local player  = Players.LocalPlayer
     local name    = player and player.Name or ""
@@ -147,7 +147,7 @@ ctx.Services = loadModule("Modules/Services.lua")
 
 -- Carrega AutoLike apenas para usuários permitidos
 do
-    local allowed = {Kchaos97 = true, CKhaos79 = false}
+    local allowed = {Kchaos97 = true, CKhaos79 = true}
     if allowed[name] then
         ctx.AutoLike = loadModule("Modules/AutoLike.lua")
     end

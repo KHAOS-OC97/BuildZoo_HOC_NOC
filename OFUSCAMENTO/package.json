@@ -1,0 +1,15 @@
+{
+  "name": "buildzoo-ofuscamento",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pipeline de build, ofuscacao e distribuicao para BuildZoo_HOC_NOC",
+  "scripts": {
+    "build": "node ./scripts/build.js",
+    "obfuscate": "node ./scripts/obfuscate.js",
+    "release:prepare": "npm run build && npm run obfuscate",
+    "mirror": "node ./scripts/mirror.js"
+  },
+  "dependencies": {
+    "luamin": "^1.0.4"
+  }
+}
