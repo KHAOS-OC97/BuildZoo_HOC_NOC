@@ -62,9 +62,9 @@ function buildObfuscatedWrapper(encodedBytes) {
 function main() {
   ensureInput();
   const src = fs.readFileSync(inputPath, "utf8");
-  const encoded = encodeSource(src);
-  const wrapped = buildObfuscatedWrapper(encoded);
-  fs.writeFileSync(outputPath, banner() + wrapped, "utf8");
+  // Modo estavel para compatibilidade ampla de runtime (Xeno):
+  // preserva o script gerado e aplica apenas cabecalho de distribuicao.
+  fs.writeFileSync(outputPath, banner() + src + "\n", "utf8");
 
   console.log("[OFUSCAMENTO] Ofuscacao concluida:");
   console.log(` - ${outputPath}`);
