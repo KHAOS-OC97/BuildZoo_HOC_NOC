@@ -6,9 +6,22 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 local ALLOWED = {
-    Kchaos97 = "CKhaos79",
-    CKhaos79 = "Kchaos97"
+    kchaos97 = "ckhaos79",
+    ckhaos79 = "kchaos97"
 }
+
+local function normalizeName(value)
+    return string.lower(tostring(value or ""))
+end
+
+local function findPlayerByLowerName(lowerName)
+    for _, player in ipairs(Players:GetPlayers()) do
+        if normalizeName(player.Name) == lowerName then
+            return player
+        end
+    end
+    return nil
+end
 
 local function waitForLikeButton(timeout)
     timeout = timeout or 10
@@ -22,10 +35,10 @@ local function waitForLikeButton(timeout)
 end
 
 local function canLike()
-    local target = ALLOWED[LocalPlayer.Name]
+    local target = ALLOWED[normalizeName(LocalPlayer.Name)]
     if not target then return false end
     -- Só curte se o outro permitido estiver na partida
-    return Players:FindFirstChild(target) ~= nil
+    return findPlayerByLowerName(target) ~= nil
 end
 
 local function tryLike()

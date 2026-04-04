@@ -34,10 +34,15 @@
 
 -- ── Whitelist Security Check ──────────────────────────────────────────────────
 do
-    local ALLOWED_USERS = { ["KChaos97"] = true, ["CKhaos79"] = true }
+    local ALLOWED_USERS = { ["kchaos97"] = true, ["ckhaos79"] = true }
+    -- Opcional: preencha com os UserIds oficiais para dupla validacao.
+    -- Exemplo: [123456789] = true
+    local ALLOWED_USER_IDS = {}
     local Players = game:GetService("Players")
     local player  = Players.LocalPlayer
     local name    = player and player.Name or ""
+    local userId  = player and player.UserId or 0
+    local normalizedName = string.lower(tostring(name))
 
     local function showAccessNotification(granted)
         local sg = Instance.new("ScreenGui")
@@ -99,7 +104,12 @@ do
         end)
     end
 
-    if not ALLOWED_USERS[name] then
+    local hasNameRules = next(ALLOWED_USERS) ~= nil
+    local hasIdRules = next(ALLOWED_USER_IDS) ~= nil
+    local nameAllowed = (not hasNameRules) or (ALLOWED_USERS[normalizedName] == true)
+    local idAllowed = (not hasIdRules) or (ALLOWED_USER_IDS[userId] == true)
+
+    if not (nameAllowed and idAllowed) then
         showAccessNotification(false)
         return
     end
