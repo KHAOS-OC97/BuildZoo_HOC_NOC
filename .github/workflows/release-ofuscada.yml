@@ -1,0 +1,134 @@
+name: release-ofuscada
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    env:
+      MIRROR_REPO: ${{ secrets.MIRROR_REPO }}
+      MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+      MIRROR_BRANCH: ${{ secrets.MIRROR_BRANCH }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install OFUSCAMENTO deps
+        run: npm --prefix OFUSCAMENTO install
+
+      - name: Build bundle
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+        run: npm --prefix OFUSCAMENTO run build
+
+      - name: Obfuscate bundle
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+        run: npm --prefix OFUSCAMENTO run obfuscate
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ofuscamento-dist-${{ github.ref_name || github.run_id }}
+          path: |
+            OFUSCAMENTO/dist/HOC_NOC.release.lua
+            OFUSCAMENTO/dist/HOC_NOC.release.obf.lua
+            OFUSCAMENTO/dist/Loader.release.lua
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            OFUSCAMENTO/dist/HOC_NOC.release.obf.lua
+            OFUSCAMENTO/dist/Loader.release.lua
+
+      - name: Mirror to public distribution repo
+        if: ${{ env.MIRROR_REPO != '' && env.MIRROR_TOKEN != '' }}
+        env:
+          MIRROR_GIT_USER: github-actions[bot]
+          MIRROR_GIT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: npm --prefix OFUSCAMENTO run mirror
+name: release-ofuscada
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    env:
+      MIRROR_REPO: ${{ secrets.MIRROR_REPO }}
+      MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+      MIRROR_BRANCH: ${{ secrets.MIRROR_BRANCH }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install OFUSCAMENTO deps
+        run: npm --prefix OFUSCAMENTO install
+
+      - name: Build bundle
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+        run: npm --prefix OFUSCAMENTO run build
+
+      - name: Obfuscate bundle
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+        run: npm --prefix OFUSCAMENTO run obfuscate
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ofuscamento-dist-${{ github.ref_name || github.run_id }}
+          path: |
+            OFUSCAMENTO/dist/HOC_NOC.release.lua
+            OFUSCAMENTO/dist/HOC_NOC.release.obf.lua
+            OFUSCAMENTO/dist/Loader.release.lua
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            OFUSCAMENTO/dist/HOC_NOC.release.obf.lua
+            OFUSCAMENTO/dist/Loader.release.lua
+
+      - name: Mirror to public distribution repo
+        if: ${{ env.MIRROR_REPO != '' && env.MIRROR_TOKEN != '' }}
+        env:
+          MIRROR_GIT_USER: github-actions[bot]
+          MIRROR_GIT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: npm --prefix OFUSCAMENTO run mirror
