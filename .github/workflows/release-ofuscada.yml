@@ -12,6 +12,10 @@ permissions:
 jobs:
   build-release:
     runs-on: ubuntu-latest
+    env:
+      MIRROR_REPO: ${{ secrets.MIRROR_REPO }}
+      MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+      MIRROR_BRANCH: ${{ secrets.MIRROR_BRANCH }}
 
     steps:
       - name: Checkout
@@ -53,11 +57,8 @@ jobs:
             OFUSCAMENTO/dist/Loader.release.lua
 
       - name: Mirror to public distribution repo
-        if: ${{ secrets.MIRROR_REPO != '' && secrets.MIRROR_TOKEN != '' }}
+        if: ${{ env.MIRROR_REPO != '' && env.MIRROR_TOKEN != '' }}
         env:
-          MIRROR_REPO: ${{ secrets.MIRROR_REPO }}
-          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
-          MIRROR_BRANCH: ${{ secrets.MIRROR_BRANCH }}
           MIRROR_GIT_USER: github-actions[bot]
           MIRROR_GIT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
         run: npm --prefix OFUSCAMENTO run mirror
