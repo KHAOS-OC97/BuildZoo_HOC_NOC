@@ -34,7 +34,7 @@
 
 -- ── Whitelist Security Check ──────────────────────────────────────────────────
 do
-    local ALLOWED_USERS = { ["kchaos97"] = true, ["ckhaos79"] = true, ["Tokushu9779"] = true }
+    local ALLOWED_USERS = { ["kchaos97"] = true, ["ckhaos79"] = true, ["tokushu9779"] = true }
     -- UserIds oficiais autorizados (dupla validacao: nome + id)
     local ALLOWED_USER_IDS = {
         [2242060908] = true,

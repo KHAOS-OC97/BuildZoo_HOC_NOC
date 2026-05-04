@@ -17,7 +17,7 @@ local __HOC_PLAYER_NAME = ""
 
 -- ── Whitelist Security Check ──────────────────────────────────────────────────
 do
-    local ALLOWED_USERS = { ["kchaos97"] = true, ["ckhaos79"] = true, ["Tokushu9779"] = true }
+    local ALLOWED_USERS = { ["kchaos97"] = true, ["ckhaos79"] = true, ["tokushu9779"] = true }
     local ALLOWED_USER_IDS = {
         [2242060908] = true,
         [5019856388] = true,
