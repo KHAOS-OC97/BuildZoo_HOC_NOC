@@ -123,11 +123,22 @@ function GUICore.Build(ctx)
             warn("[HOC NOC] ctx.GUI não está definido; não foi possível construir " .. tostring(name))
             return
         end
+
         local module = ctx.GUI[name]
-        if module and type(module.Build) == "function" then
-            module.Build(Main, ctx)
-        else
-            warn("[HOC NOC] módulo GUI '" .. tostring(name) .. "' não disponível ou não possui Build().")
+        if type(module) ~= "table" then
+            warn("[HOC NOC] módulo GUI '" .. tostring(name) .. "' não encontrado ou inválido.")
+            return
+        end
+
+        local buildFn = module.Build
+        if type(buildFn) ~= "function" then
+            warn("[HOC NOC] módulo GUI '" .. tostring(name) .. "' não possui Build().")
+            return
+        end
+
+        local ok, err = pcall(buildFn, Main, ctx)
+        if not ok then
+            warn("[HOC NOC] falha ao construir módulo GUI '" .. tostring(name) .. "': " .. tostring(err))
         end
     end
 
