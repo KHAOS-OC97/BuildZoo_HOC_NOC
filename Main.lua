@@ -34,11 +34,12 @@
 
 -- ── Whitelist Security Check ──────────────────────────────────────────────────
 do
-    local ALLOWED_USERS = { ["kchaos97"] = true, ["ckhaos79"] = true }
+    local ALLOWED_USERS = { ["kchaos97"] = true, ["ckhaos79"] = true, ["Tokushu9779"] = true }
     -- UserIds oficiais autorizados (dupla validacao: nome + id)
     local ALLOWED_USER_IDS = {
         [2242060908] = true,
         [5019856388] = true,
+        [10777728212] = true,
     }
     local Players = game:GetService("Players")
     local player  = Players.LocalPlayer
