@@ -118,15 +118,24 @@ function GUICore.Build(ctx)
     end)
     stored.CtrlConn = ctrlConn
 
-    -- ── Seções internas ───────────────────────────────────────────────────────
-    ctx.GUI.Toggles.Build(Main, ctx)
-    ctx.GUI.Buttons.Build(Main, ctx)
-    ctx.GUI.FruitMenu.Build(Main, ctx)
-    if ctx.GUI.Dashboard and type(ctx.GUI.Dashboard.Build) == "function" then
-        ctx.GUI.Dashboard.Build(Main, ctx)
-    else
-        warn("[HOC NOC] Dashboard não disponível: pulando construção do painel de estatísticas.")
+    local function buildSection(name)
+        if type(ctx.GUI) ~= "table" then
+            warn("[HOC NOC] ctx.GUI não está definido; não foi possível construir " .. tostring(name))
+            return
+        end
+        local module = ctx.GUI[name]
+        if module and type(module.Build) == "function" then
+            module.Build(Main, ctx)
+        else
+            warn("[HOC NOC] módulo GUI '" .. tostring(name) .. "' não disponível ou não possui Build().")
+        end
     end
+
+    -- ── Seções internas ───────────────────────────────────────────────────────
+    buildSection("Toggles")
+    buildSection("Buttons")
+    buildSection("FruitMenu")
+    buildSection("Dashboard")
 
     -- ── Armazena referências ──────────────────────────────────────────────────
     stored.ScreenGui = ScreenGui
