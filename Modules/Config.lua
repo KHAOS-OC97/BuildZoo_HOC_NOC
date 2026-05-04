@@ -86,7 +86,7 @@ return {
     },
 
     -- Usuários aliados para teleporte
-    TARGET_USERS = {"KChaos97", "CKhaos79"},
+    TARGET_USERS = {"KChaos97", "CKhaos79", "Tokushu9779"},
     TELEPORT_POINTS = {
         BASE = Vector3.new(847.1, 28.2, 4064.1),
         PRISMATIC = Vector3.new(-1233.7, 122.5, 4065.9),
