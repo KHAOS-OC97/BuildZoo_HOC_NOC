@@ -154,6 +154,8 @@ local ctx = {}
 ctx.Config   = loadModule("Modules/Config.lua")
 ctx.State    = loadModule("Modules/State.lua")
 ctx.Services = loadModule("Modules/Services.lua")
+ctx.SavedPreferences = loadModule("Modules/SavedPreferences.lua")
+ctx.Toast = loadModule("Modules/Toast.lua")
 
 -- ── Módulos de feature ────────────────────────────────────────────────────────
 ctx.AntiAFK   = loadModule("Modules/AntiAFK.lua")
@@ -169,10 +171,11 @@ ctx.Emotes    = loadModule("Modules/Emotes.lua")
 
 -- ── Módulos de GUI ────────────────────────────────────────────────────────────
 ctx.GUI = {
-    Toggles  = loadModule("Modules/GUI/Toggles.lua"),
-    Buttons  = loadModule("Modules/GUI/Buttons.lua"),
+    Toggles   = loadModule("Modules/GUI/Toggles.lua"),
+    Buttons   = loadModule("Modules/GUI/Buttons.lua"),
     FruitMenu = loadModule("Modules/GUI/FruitMenu.lua"),
-    Core     = loadModule("Modules/GUI/Core.lua"),
+    Dashboard = loadModule("Modules/GUI/Dashboard.lua"),
+    Core      = loadModule("Modules/GUI/Core.lua"),
 }
 
 -- ── Inicialização das features (conecta eventos, inicia loops) ────────────────
@@ -186,6 +189,8 @@ safeInvoke("BigPetFeed.Init", function() ctx.BigPetFeed.Init(ctx) end)
 safeInvoke("ServerHop.Init", function() ctx.ServerHop.Init(ctx) end)
 safeInvoke("Teleport.Init", function() ctx.Teleport.Init(ctx) end)
 safeInvoke("Emotes.Init",   function() ctx.Emotes.Init(ctx) end)
+
+safeInvoke("SavedPreferences.Init", function() ctx.SavedPreferences.Init(ctx) end)
 
 -- ── Construção inicial da GUI ─────────────────────────────────────────────────
 safeInvoke("GUI.Core.Build", function() ctx.GUI.Core.Build(ctx) end)

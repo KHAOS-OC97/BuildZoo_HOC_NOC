@@ -57,6 +57,8 @@ local State = {
         Menu           = nil,
         MenuScroll     = nil,
         itemButtons    = {},
+        DashboardFrame = nil,
+        DashboardToggleButton = nil,
         -- Conexão do atalho CTRL (deve ser desconectada ao recriar a GUI)
         CtrlConn       = nil,
     },
@@ -89,6 +91,8 @@ function State.ClearStored()
         Menu           = nil,
         MenuScroll     = nil,
         itemButtons    = {},
+        DashboardFrame = nil,
+        DashboardToggleButton = nil,
         CtrlConn       = nil,
     }
 end

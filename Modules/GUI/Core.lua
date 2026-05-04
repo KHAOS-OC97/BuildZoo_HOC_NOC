@@ -122,6 +122,7 @@ function GUICore.Build(ctx)
     ctx.GUI.Toggles.Build(Main, ctx)
     ctx.GUI.Buttons.Build(Main, ctx)
     ctx.GUI.FruitMenu.Build(Main, ctx)
+    ctx.GUI.Dashboard.Build(Main, ctx)
 
     -- ── Armazena referências ──────────────────────────────────────────────────
     stored.ScreenGui = ScreenGui
