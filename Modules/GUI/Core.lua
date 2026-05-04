@@ -122,7 +122,11 @@ function GUICore.Build(ctx)
     ctx.GUI.Toggles.Build(Main, ctx)
     ctx.GUI.Buttons.Build(Main, ctx)
     ctx.GUI.FruitMenu.Build(Main, ctx)
-    ctx.GUI.Dashboard.Build(Main, ctx)
+    if ctx.GUI.Dashboard and type(ctx.GUI.Dashboard.Build) == "function" then
+        ctx.GUI.Dashboard.Build(Main, ctx)
+    else
+        warn("[HOC NOC] Dashboard não disponível: pulando construção do painel de estatísticas.")
+    end
 
     -- ── Armazena referências ──────────────────────────────────────────────────
     stored.ScreenGui = ScreenGui
