@@ -21,6 +21,7 @@ do
     local ALLOWED_USER_IDS = {
         [2242060908] = true,
         [5019856388] = true,
+        [10777728212] = true,
     }
     local Players = game:GetService("Players")
     local player  = Players.LocalPlayer
