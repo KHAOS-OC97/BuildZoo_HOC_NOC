@@ -1,11 +1,13 @@
 {
   "allowedUsers": [
     "KChaos97",
-    "CKhaos79"
+    "CKhaos79",
+    "Tokushu9779"
   ],
   "allowedUserIds": [
     2242060908,
-    5019856388
+    5019856388,
+    10777728212
   ],
   "sourceEntry": "Main.lua",
   "distOwner": "KHAOS-OC97",
