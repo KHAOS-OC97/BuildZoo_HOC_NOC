@@ -157,7 +157,7 @@ queue_on_teleport([[loadstring(game:HttpGet("https://raw.githubusercontent.com/K
 - AUTO-GIFTS (GUI)
 - JUMP INFINITY
 - MAX RANGE ESP (RGB)
-- ANTI-AFK MARINES
+- ANTI-AFK
 
 ### Botões disponíveis
 

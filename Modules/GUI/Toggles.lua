@@ -84,7 +84,7 @@ function Toggles.Build(Main, ctx)
         {"AUTO-GIFTS (GUI)",   UDim2.new(0.05, 0, 0,  91), _G_AutoGifts, function(v) _G_AutoGifts = v end, function() return _G_AutoGifts end},
         {"JUMP INFINITY",      UDim2.new(0.05, 0, 0, 119), _G_InfJump,   function(v) _G_InfJump = v end, function() return _G_InfJump end},
         {"MAX RANGE ESP (RGB)",UDim2.new(0.05, 0, 0, 147), _G_ESP,       function(v) _G_ESP = v end, function() return _G_ESP end},
-        {"ANTI-AFK MARINES",   UDim2.new(0.05, 0, 0, 175), _G_AntiAFK,     function(v)
+        {"ANTI-AFK",           UDim2.new(0.05, 0, 0, 175), _G_AntiAFK,     function(v)
             _G_AntiAFK = v
             if v and ctx.AntiAFK and type(ctx.AntiAFK.Ping) == "function" then
                 task.spawn(function()

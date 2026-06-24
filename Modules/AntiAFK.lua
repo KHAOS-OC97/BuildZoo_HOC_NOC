@@ -60,7 +60,7 @@ local function manageAFKBox(shouldBeActive)
         part.Parent = boxFolder
     end
 
-    local w, h, t = 5, 7, 1 -- Largura, Altura, Espessura
+    local w, h, t = 5, 17.5, 1 -- Largura, Altura, Espessura
 
     createWall(Vector3.new(w, t, w), CFrame.new(0, -h/2, 0)) -- Chão
     createWall(Vector3.new(w, t, w), CFrame.new(0, h/2, 0))  -- Teto
