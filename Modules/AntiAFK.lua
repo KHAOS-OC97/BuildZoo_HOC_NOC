@@ -52,7 +52,7 @@ local function manageAFKBox(shouldBeActive)
         part.Size = size
         part.CFrame = root.CFrame * offset
         part.Anchored = true
-        part.CanCollide = true
+        part.CanCollide = false -- Desabilitada para não interferir no movimento
         part.Transparency = 0.5
         part.Material = Enum.Material.ForceField -- Visual estiloso de campo de força
         part.Color = Color3.fromRGB(0, 255, 255) -- Cor Ciano
@@ -60,7 +60,7 @@ local function manageAFKBox(shouldBeActive)
         part.Parent = boxFolder
     end
 
-    local w, h, t = 5, 17.5, 1 -- Largura, Altura, Espessura
+    local w, h, t = 8, 17.5, 1 -- Largura, Altura, Espessura (aumentada horizontalmente)
 
     createWall(Vector3.new(w, t, w), CFrame.new(0, -h/2, 0)) -- Chão
     createWall(Vector3.new(w, t, w), CFrame.new(0, h/2, 0))  -- Teto
