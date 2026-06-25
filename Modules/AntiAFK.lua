@@ -34,8 +34,11 @@ local function manageAFKBox(shouldBeActive)
         return
     end
 
-    -- Se já existe uma caixa, não cria outra
-    if boxFolder then return end
+    -- Se a caixa já existe, destruímos e recriamos para sempre manter a posição atual do personagem
+    if boxFolder then
+        boxFolder:Destroy()
+        boxFolder = nil
+    end
 
     local char = _svc.LocalPlayer and _svc.LocalPlayer.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -158,8 +161,11 @@ end
 local function bindCurrentCharacter()
     if not _svc or not _svc.LocalPlayer then return end
 
-    local character = _svc.LocalPlayer.Character
-    if character then
+    local function onCharacterAdded(character)
+        if _G_AntiAFK then
+            manageAFKBox(true)
+        end
+
         task.spawn(function()
             pcall(function()
                 character:WaitForChild("Humanoid", 5)
@@ -168,6 +174,13 @@ local function bindCurrentCharacter()
                 doAntiIdlePulse()
             end
         end)
+    end
+
+    _svc.LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+
+    local character = _svc.LocalPlayer.Character
+    if character then
+        onCharacterAdded(character)
     end
 end
 
