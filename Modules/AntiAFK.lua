@@ -52,7 +52,7 @@ local function manageAFKBox(shouldBeActive)
         part.Size = size
         part.CFrame = root.CFrame * offset
         part.Anchored = true
-        part.CanCollide = false -- Desabilitada para não interferir no movimento
+        part.CanCollide = true -- Ativa colisão para conter o jogador dentro da caixa
         part.Transparency = 0.5
         part.Material = Enum.Material.ForceField -- Visual estiloso de campo de força
         part.Color = Color3.fromRGB(0, 255, 255) -- Cor Ciano
