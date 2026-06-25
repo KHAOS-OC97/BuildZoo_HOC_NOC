@@ -86,11 +86,6 @@ function Toggles.Build(Main, ctx)
         {"MAX RANGE ESP (RGB)",UDim2.new(0.05, 0, 0, 147), _G_ESP,       function(v) _G_ESP = v end, function() return _G_ESP end},
         {"ANTI-AFK",           UDim2.new(0.05, 0, 0, 175), _G_AntiAFK,     function(v)
             _G_AntiAFK = v
-            if v and ctx.AntiAFK and type(ctx.AntiAFK.Ping) == "function" then
-                task.spawn(function()
-                    pcall(function() ctx.AntiAFK.Ping() end)
-                end)
-            end
         end, function() return _G_AntiAFK end},
     }
 

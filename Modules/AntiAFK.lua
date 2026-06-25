@@ -8,6 +8,7 @@
 local AntiAFK = {}
 local _svc
 local _runtime
+local ANTI_AFK_PULSE_INTERVAL = 60
 
 local function ensureRuntime()
     _G.__HOC_RUNTIME = _G.__HOC_RUNTIME or {}
@@ -171,7 +172,7 @@ local function bindCurrentCharacter()
                 character:WaitForChild("Humanoid", 5)
             end)
             if _G_AntiAFK then
-                doAntiIdlePulse()
+                -- Não executar pulso imediato ao trocar de personagem; aguarda o próximo intervalo de 60s
             end
         end)
     end
@@ -195,7 +196,7 @@ local function ensureHeartbeat()
         if not _G_Running or not _G_AntiAFK then return end
 
         local current = now()
-        if current - (_runtime.LastPulseAt or 0) >= 15 then
+        if current - (_runtime.LastPulseAt or 0) >= ANTI_AFK_PULSE_INTERVAL then
             doAntiIdlePulse()
         end
     end)
@@ -210,7 +211,9 @@ function AntiAFK.Init(ctx)
     end
 
     _runtime.IdledConn = _svc.LocalPlayer.Idled:Connect(function()
-        doAntiIdlePulse()
+        if _runtime and now() - (_runtime.LastPulseAt or 0) >= ANTI_AFK_PULSE_INTERVAL then
+            doAntiIdlePulse()
+        end
     end)
 
     -- Heartbeat agora também gerencia a caixa
@@ -223,10 +226,13 @@ function AntiAFK.Init(ctx)
         if _runtime.LastToggleState ~= _G_AntiAFK then
             _runtime.LastToggleState = _G_AntiAFK
             manageAFKBox(_G_AntiAFK)
+            if _G_AntiAFK then
+                _runtime.LastPulseAt = now()
+            end
         end
         if not _G_AntiAFK then return end
         local current = now()
-        if current - (_runtime.LastPulseAt or 0) >= 15 then
+        if current - (_runtime.LastPulseAt or 0) >= ANTI_AFK_PULSE_INTERVAL then
             doAntiIdlePulse()
         end
     end)
@@ -237,7 +243,7 @@ function AntiAFK.Init(ctx)
         _runtime.WatchdogRunning = true
         task.spawn(function()
             while _G_Running do
-                if _G_AntiAFK then
+                if _G_AntiAFK and now() - (_runtime.LastPulseAt or 0) >= ANTI_AFK_PULSE_INTERVAL then
                     doAntiIdlePulse()
                 end
                 task.wait(20)
@@ -259,13 +265,15 @@ function AntiAFK.Init(ctx)
     if _G_AntiAFK then
         _runtime.LastToggleState = true
         manageAFKBox(true)
-        doAntiIdlePulse()
+        _runtime.LastPulseAt = now()
     end
 end
 
 -- Chamado pelo monitor a cada ANTI_AFK_INTERVAL segundos
 function AntiAFK.Ping()
-    doAntiIdlePulse()
+    if _runtime and now() - (_runtime.LastPulseAt or 0) >= ANTI_AFK_PULSE_INTERVAL then
+        doAntiIdlePulse()
+    end
 end
 
 return AntiAFK
