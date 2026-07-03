@@ -14,12 +14,13 @@ _G_AutoCollect = (_G_AutoCollect == nil) and false or _G_AutoCollect
 _G_AutoBuild   = (_G_AutoBuild   == nil) and false or _G_AutoBuild
 _G_AutoGifts   = (_G_AutoGifts   == nil) and false or _G_AutoGifts
 _G_AutoFish    = (_G_AutoFish    == nil) and false or _G_AutoFish
-_G_InfJump     = (_G_InfJump     == nil) and false or _G_InfJump
-_G_ESP         = (_G_ESP         == nil) and false or _G_ESP
-_G_AntiAFK     = (_G_AntiAFK     == nil) and false or _G_AntiAFK
-_G_WalkSpeed   = (_G_WalkSpeed   == nil) and 16    or _G_WalkSpeed
-_G_Fly         = (_G_Fly         == nil) and false or _G_Fly
-_G_AutoBuy     = (_G_AutoBuy     == nil) and false or _G_AutoBuy
+_G_InfJump        = (_G_InfJump        == nil) and false or _G_InfJump
+_G_ESP            = (_G_ESP            == nil) and false or _G_ESP
+_G_AntiAFK        = (_G_AntiAFK        == nil) and false or _G_AntiAFK
+_G_WalkSpeed      = (_G_WalkSpeed      == nil) and nil   or _G_WalkSpeed
+_G_WalkSpeedEnabled = (_G_WalkSpeedEnabled == nil) and false or _G_WalkSpeedEnabled
+_G_Fly            = (_G_Fly            == nil) and false or _G_Fly
+_G_AutoBuy        = (_G_AutoBuy        == nil) and false or _G_AutoBuy
 _G_BuyAmount   = (_G_BuyAmount   == nil) and 1     or _G_BuyAmount
 _G_BigPetsFeed = (_G_BigPetsFeed == nil) and false or _G_BigPetsFeed
 

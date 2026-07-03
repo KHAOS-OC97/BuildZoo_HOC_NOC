@@ -58,7 +58,8 @@ function Buttons.Build(Main, ctx)
     end
 
     -- ── Linha 1: WalkSpeed | Server Hop ──────────────────────────────────────
-    local SpeedBtn = addBtn("WALKSPEED: " .. tostring(_G_WalkSpeed), LEFT_X, BTN_START, HALF_W)
+    local initialSpeedText = _G_WalkSpeed and tostring(_G_WalkSpeed) or "GAME"
+    local SpeedBtn = addBtn("WALKSPEED: " .. initialSpeedText, LEFT_X, BTN_START, HALF_W)
     stored.SpeedBtn = SpeedBtn
     SpeedBtn.MouseButton1Click:Connect(function()
         local newSpeed = Movement.CycleSpeed(cfg.WALK_SPEED_CYCLE)

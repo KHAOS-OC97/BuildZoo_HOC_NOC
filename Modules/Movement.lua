@@ -13,6 +13,8 @@ local _runtime
 local function applyWalkSpeed(hum)
     if not hum then return end
     if not _G_Running then return end
+    if not _G_WalkSpeedEnabled then return end
+    if not _G_WalkSpeed then return end
     pcall(function() hum.WalkSpeed = _G_WalkSpeed end)
 end
 
@@ -110,6 +112,7 @@ function Movement.CycleSpeed(presets)
         end
     end
     _G_WalkSpeed = presets[nextIdx]
+    _G_WalkSpeedEnabled = true
     -- Aplica imediatamente sem esperar o próximo Stepped
     if _svc then
         local char = _svc.LocalPlayer and _svc.LocalPlayer.Character
