@@ -76,14 +76,13 @@ do
         sound.SoundId = STARTUP_SOUND_ID
         sound.Volume = 1
         sound.Looped = false
-        sound.Parent = mediaGui
+        sound.Parent = game:GetService("SoundService")
 
-        pcall(function()
-            if not sound.IsLoaded then
-                sound.Loaded:Wait()
-            end
+        task.spawn(function()
+            pcall(function()
+                sound:Play()
+            end)
         end)
-        pcall(function() sound:Play() end)
 
         task.delay(30, function()
             if sound and sound.Parent then
