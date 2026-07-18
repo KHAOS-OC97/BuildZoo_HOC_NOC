@@ -20,6 +20,9 @@ local function safeParent(gui, svc)
 
     if not ok or not gui.Parent then
         local playerGui = svc.LocalPlayer and svc.LocalPlayer:FindFirstChild("PlayerGui")
+        if not playerGui and svc.LocalPlayer then
+            playerGui = svc.LocalPlayer:WaitForChild("PlayerGui", 5)
+        end
         if playerGui then
             pcall(function()
                 gui.Parent = playerGui
