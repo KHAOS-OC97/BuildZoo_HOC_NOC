@@ -48,7 +48,10 @@ do
     local userId  = player and player.UserId or 0
     local normalizedName = string.lower(tostring(name))
 
-    local STARTUP_SOUND_ID = "rbxassetid://118831562153998"
+    local STARTUP_SOUND_IDS = {
+        "rbxassetid://118831562153998",
+        "rbxassetid://184491970",
+    }
     local STARTUP_IMAGE_ID = "rbxassetid://0" -- substitua pelo AssetId da sua imagem carregada no Roblox
     local STARTUP_IMAGE_DURATION = 5
 
@@ -73,23 +76,40 @@ do
 
         local sound = Instance.new("Sound")
         sound.Name = "HOCStartupSound"
-        sound.SoundId = STARTUP_SOUND_ID
         sound.Volume = 1
         sound.Looped = false
         sound.Parent = game:GetService("Workspace")
 
-        local function playSound()
-            pcall(function()
-                if sound and sound.Parent then
-                    sound:Play()
-                end
+        local function tryPlay(index)
+            if not sound or not sound.Parent then
+                return false
+            end
+            local soundId = STARTUP_SOUND_IDS[index]
+            if not soundId then
+                return false
+            end
+
+            sound.SoundId = soundId
+            local ok, err = pcall(function()
+                sound:Play()
             end)
+            if ok then
+                return true
+            end
+
+            local errStr = tostring(err):lower()
+            if errStr:find("not authorized") or errStr:find("not accessible") or errStr:find("invalid asset") or errStr:find("not owned") then
+                return tryPlay(index + 1)
+            end
+            return false
         end
 
         if sound.IsLoaded then
-            playSound()
+            tryPlay(1)
         else
-            sound.Loaded:Connect(playSound)
+            sound.Loaded:Connect(function()
+                tryPlay(1)
+            end)
         end
 
         task.delay(30, function()
