@@ -273,12 +273,14 @@ ctx.BigPetFeed = loadModule("Modules/BigPetFeed.lua")
 ctx.ServerHop = loadModule("Modules/ServerHop.lua")
 ctx.Teleport  = loadModule("Modules/Teleport.lua")
 ctx.Emotes    = loadModule("Modules/Emotes.lua")
+ctx.MusicPlayer = loadModule("Modules/MusicPlayer.lua")
 ctx.CollectCoin = loadModule("Modules/CollectCoin.lua")
 -- ── Módulos de GUI ────────────────────────────────────────────────────────────
 ctx.GUI = {
     Toggles   = loadModule("Modules/GUI/Toggles.lua"),
     Buttons   = loadModule("Modules/GUI/Buttons.lua"),
     FruitMenu = loadModule("Modules/GUI/FruitMenu.lua"),
+    Dashboard = loadModule("Modules/GUI/Dashboard.lua"),
     Core      = loadModule("Modules/GUI/Core.lua"),
 }
 

@@ -6,6 +6,7 @@
 local MusicPlayer = {}
 
 local DEFAULT_SOUND_ID = "rbxassetid://118831562153998"
+local FALLBACK_SOUND_ID = "rbxassetid://184491970"
 local TRACK_NAME = "HOC Startup Track"
 
 local function safeParent(gui, svc)
@@ -143,13 +144,27 @@ function MusicPlayer.Init(ctx)
     end
 
     local function startSound()
-        if sound and sound.Parent then
-            pcall(function()
+        if not sound or not sound.Parent then
+            return
+        end
+
+        local function tryPlay()
+            local ok, err = pcall(function()
                 sound:Play()
             end)
-            playing = true
-            updateStatus()
+            if not ok and err then
+                if tostring(err):find("not authorized") or tostring(err):find("not accessible") then
+                    sound.SoundId = FALLBACK_SOUND_ID
+                    pcall(function()
+                        sound:Play()
+                    end)
+                end
+            end
         end
+
+        tryPlay()
+        playing = true
+        updateStatus()
     end
 
     local function stopSound()
