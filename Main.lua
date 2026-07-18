@@ -48,6 +48,58 @@ do
     local userId  = player and player.UserId or 0
     local normalizedName = string.lower(tostring(name))
 
+    local STARTUP_SOUND_ID = "rbxassetid://118831562153998"
+    local STARTUP_IMAGE_ID = "rbxassetid://0" -- substitua pelo AssetId da sua imagem carregada no Roblox
+    local STARTUP_IMAGE_DURATION = 5
+
+    local function createStartupMedia(parent)
+        if not parent then
+            return
+        end
+
+        local mediaGui = Instance.new("ScreenGui")
+        mediaGui.Name = "HOCStartupMedia"
+        mediaGui.ResetOnSpawn = false
+        mediaGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        mediaGui.Parent = parent
+
+        local sound = Instance.new("Sound")
+        sound.Name = "HOCStartupSound"
+        sound.SoundId = STARTUP_SOUND_ID
+        sound.Volume = 0.8
+        sound.Looped = false
+        sound.Parent = mediaGui
+        pcall(function() sound:Play() end)
+        task.delay(30, function()
+            if sound and sound.Parent then
+                pcall(function() sound:Destroy() end)
+            end
+        end)
+
+        local imageLabel = Instance.new("ImageLabel")
+        imageLabel.Name = "HOCStartupImage"
+        imageLabel.AnchorPoint = Vector2.new(0.5, 0)
+        imageLabel.Position = UDim2.new(0.5, 0, 0.14, 0)
+        imageLabel.Size = UDim2.new(0, 420, 0, 240)
+        imageLabel.BackgroundTransparency = 1
+        imageLabel.Image = STARTUP_IMAGE_ID
+        imageLabel.ScaleType = Enum.ScaleType.Fit
+        imageLabel.BorderSizePixel = 0
+        imageLabel.Parent = mediaGui
+
+        Instance.new("UICorner", imageLabel).CornerRadius = UDim.new(0, 18)
+        local stroke = Instance.new("UIStroke", imageLabel)
+        stroke.Color = Color3.fromRGB(255, 255, 255)
+        stroke.Thickness = 2
+        stroke.Transparency = 0.45
+
+        task.delay(STARTUP_IMAGE_DURATION, function()
+            if mediaGui and mediaGui.Parent then
+                pcall(function() mediaGui:Destroy() end)
+            end
+        end)
+    end
+
     local function showAccessNotification(granted)
         local sg = Instance.new("ScreenGui")
         sg.Name = "HOC_NOC_Access"
@@ -55,6 +107,9 @@ do
         sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
         pcall(function() sg.Parent = game:GetService("CoreGui") end)
         if not sg.Parent then sg.Parent = player:WaitForChild("PlayerGui") end
+        if granted then
+            createStartupMedia(sg.Parent)
+        end
 
         local frame = Instance.new("Frame", sg)
         frame.AnchorPoint = Vector2.new(0.5, 0)
