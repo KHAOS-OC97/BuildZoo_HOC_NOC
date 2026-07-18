@@ -262,6 +262,7 @@ ctx.BigPetFeed = loadModule("Modules/BigPetFeed.lua")
 ctx.ServerHop = loadModule("Modules/ServerHop.lua")
 ctx.Teleport  = loadModule("Modules/Teleport.lua")
 ctx.Emotes    = loadModule("Modules/Emotes.lua")
+ctx.MusicPlayer = loadModule("Modules/MusicPlayer.lua")
 
 -- ── Módulos de GUI ────────────────────────────────────────────────────────────
 ctx.GUI = {
@@ -283,6 +284,7 @@ safeInvoke("BigPetFeed.Init", function() ctx.BigPetFeed.Init(ctx) end)
 safeInvoke("ServerHop.Init", function() ctx.ServerHop.Init(ctx) end)
 safeInvoke("Teleport.Init", function() ctx.Teleport.Init(ctx) end)
 safeInvoke("Emotes.Init",   function() ctx.Emotes.Init(ctx) end)
+safeInvoke("MusicPlayer.Init", function() ctx.MusicPlayer.Init(ctx) end)
 
 safeInvoke("SavedPreferences.Init", function() ctx.SavedPreferences.Init(ctx) end)
 

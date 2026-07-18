@@ -292,6 +292,8 @@ safeInvoke("AutoBuy.Init", function() ctx.AutoBuy.Init(ctx) end)
 safeInvoke("BigPetFeed.Init", function() ctx.BigPetFeed.Init(ctx) end)
 safeInvoke("ServerHop.Init", function() ctx.ServerHop.Init(ctx) end)
 safeInvoke("Teleport.Init", function() ctx.Teleport.Init(ctx) end)
+safeInvoke("Emotes.Init",   function() ctx.Emotes.Init(ctx) end)
+safeInvoke("MusicPlayer.Init", function() ctx.MusicPlayer.Init(ctx) end)
 
 -- Inicializa AutoLike se carregado
 if ctx.AutoLike and ctx.AutoLike.Init then
