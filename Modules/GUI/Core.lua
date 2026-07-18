@@ -146,7 +146,6 @@ function GUICore.Build(ctx)
     buildSection("Toggles")
     buildSection("Buttons")
     buildSection("FruitMenu")
-    buildSection("Dashboard")
 
     -- ── Armazena referências ──────────────────────────────────────────────────
     stored.ScreenGui = ScreenGui

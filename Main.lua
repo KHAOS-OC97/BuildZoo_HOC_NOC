@@ -52,28 +52,8 @@ do
         "rbxassetid://118831562153998",
         "rbxassetid://184491970",
     }
-    local STARTUP_IMAGE_ID = "rbxassetid://0" -- substitua pelo AssetId da sua imagem carregada no Roblox
-    local STARTUP_IMAGE_DURATION = 5
 
-    local function createStartupMedia(parent)
-        local destination = parent
-        if destination and destination:IsA("ScreenGui") then
-            destination = destination.Parent
-        end
-        if not destination or not destination:IsA("PlayerGui") then
-            destination = player:FindFirstChild("PlayerGui") or player:WaitForChild("PlayerGui")
-        end
-        if not destination then
-            return
-        end
-
-        local mediaGui = Instance.new("ScreenGui")
-        mediaGui.Name = "HOCStartupMedia"
-        mediaGui.ResetOnSpawn = false
-        mediaGui.DisplayOrder = 9999
-        mediaGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-        mediaGui.Parent = destination
-
+    local function playStartupSound()
         local sound = Instance.new("Sound")
         sound.Name = "HOCStartupSound"
         sound.Volume = 1
@@ -117,45 +97,6 @@ do
                 pcall(function() sound:Destroy() end)
             end
         end)
-
-        local imageLabel = Instance.new("ImageLabel")
-        imageLabel.Name = "HOCStartupImage"
-        imageLabel.AnchorPoint = Vector2.new(0.5, 0)
-        imageLabel.Position = UDim2.new(0.5, 0, 0.14, 0)
-        imageLabel.Size = UDim2.new(0, 420, 0, 240)
-        imageLabel.BackgroundTransparency = 0.15
-        imageLabel.BorderSizePixel = 0
-        imageLabel.ScaleType = Enum.ScaleType.Fit
-        imageLabel.Parent = mediaGui
-
-        if STARTUP_IMAGE_ID ~= "rbxassetid://0" then
-            imageLabel.Image = STARTUP_IMAGE_ID
-        else
-            imageLabel.Image = ""
-            imageLabel.BackgroundTransparency = 0.6
-            imageLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-            local txt = Instance.new("TextLabel", imageLabel)
-            txt.Size = UDim2.new(1, 0, 1, 0)
-            txt.BackgroundTransparency = 1
-            txt.TextColor3 = Color3.fromRGB(255, 255, 255)
-            txt.Font = Enum.Font.GothamBold
-            txt.TextSize = 24
-            txt.Text = "Imagem não configurada"
-            txt.TextScaled = true
-            txt.TextWrapped = true
-        end
-
-        Instance.new("UICorner", imageLabel).CornerRadius = UDim.new(0, 18)
-        local stroke = Instance.new("UIStroke", imageLabel)
-        stroke.Color = Color3.fromRGB(255, 255, 255)
-        stroke.Thickness = 2
-        stroke.Transparency = 0.45
-
-        task.delay(STARTUP_IMAGE_DURATION, function()
-            if mediaGui and mediaGui.Parent then
-                pcall(function() mediaGui:Destroy() end)
-            end
-        end)
     end
 
     local function showAccessNotification(granted)
@@ -166,7 +107,7 @@ do
         pcall(function() sg.Parent = game:GetService("CoreGui") end)
         if not sg.Parent then sg.Parent = player:WaitForChild("PlayerGui") end
         if granted then
-            createStartupMedia(sg.Parent)
+            playStartupSound()
         end
 
         local frame = Instance.new("Frame", sg)
@@ -289,7 +230,6 @@ ctx.GUI = {
     Toggles   = loadModule("Modules/GUI/Toggles.lua"),
     Buttons   = loadModule("Modules/GUI/Buttons.lua"),
     FruitMenu = loadModule("Modules/GUI/FruitMenu.lua"),
-    Dashboard = loadModule("Modules/GUI/Dashboard.lua"),
     Core      = loadModule("Modules/GUI/Core.lua"),
 }
 

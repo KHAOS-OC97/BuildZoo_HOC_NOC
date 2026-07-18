@@ -13,7 +13,6 @@ local DEFAULTS = {
     Theme = "Default",
     Hotkeys = {
         ToggleGui       = "LeftControl",
-        ToggleDashboard = "K",
         ToggleFly       = "F",
         ToggleAutoBuy   = "B",
     },
@@ -188,17 +187,6 @@ function SavedPreferences.Init(context)
                     main.Visible = not main.Visible
                     if ctx.Toast then
                         ctx.Toast.Show(ctx, "GUI " .. (main.Visible and "ativada" or "ocultada"), 2)
-                    end
-                end
-                return
-            end
-
-            if keyName == prefs.Hotkeys.ToggleDashboard then
-                local dash = ctx.State and ctx.State.Stored and ctx.State.Stored.DashboardFrame
-                if dash then
-                    dash.Visible = not dash.Visible
-                    if ctx.Toast then
-                        ctx.Toast.Show(ctx, "Dashboard " .. (dash.Visible and "aberto" or "fechado"), 2)
                     end
                 end
                 return
