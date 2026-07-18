@@ -35,23 +35,38 @@ do
     local STARTUP_IMAGE_DURATION = 5
 
     local function createStartupMedia(parent)
-        if not parent then
+        local destination = parent
+        if destination and destination:IsA("ScreenGui") then
+            destination = destination.Parent
+        end
+        if not destination or not destination:IsA("PlayerGui") then
+            destination = player:FindFirstChild("PlayerGui") or player:WaitForChild("PlayerGui")
+        end
+        if not destination then
             return
         end
 
         local mediaGui = Instance.new("ScreenGui")
         mediaGui.Name = "HOCStartupMedia"
         mediaGui.ResetOnSpawn = false
+        mediaGui.DisplayOrder = 9999
         mediaGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-        mediaGui.Parent = parent
+        mediaGui.Parent = destination
 
         local sound = Instance.new("Sound")
         sound.Name = "HOCStartupSound"
         sound.SoundId = STARTUP_SOUND_ID
-        sound.Volume = 0.8
+        sound.Volume = 1
         sound.Looped = false
         sound.Parent = mediaGui
+
+        pcall(function()
+            if not sound.IsLoaded then
+                sound.Loaded:Wait()
+            end
+        end)
         pcall(function() sound:Play() end)
+
         task.delay(30, function()
             if sound and sound.Parent then
                 pcall(function() sound:Destroy() end)
@@ -63,11 +78,27 @@ do
         imageLabel.AnchorPoint = Vector2.new(0.5, 0)
         imageLabel.Position = UDim2.new(0.5, 0, 0.14, 0)
         imageLabel.Size = UDim2.new(0, 420, 0, 240)
-        imageLabel.BackgroundTransparency = 1
-        imageLabel.Image = STARTUP_IMAGE_ID
-        imageLabel.ScaleType = Enum.ScaleType.Fit
+        imageLabel.BackgroundTransparency = 0.15
         imageLabel.BorderSizePixel = 0
+        imageLabel.ScaleType = Enum.ScaleType.Fit
         imageLabel.Parent = mediaGui
+
+        if STARTUP_IMAGE_ID ~= "rbxassetid://0" then
+            imageLabel.Image = STARTUP_IMAGE_ID
+        else
+            imageLabel.Image = ""
+            imageLabel.BackgroundTransparency = 0.6
+            imageLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            local txt = Instance.new("TextLabel", imageLabel)
+            txt.Size = UDim2.new(1, 0, 1, 0)
+            txt.BackgroundTransparency = 1
+            txt.TextColor3 = Color3.fromRGB(255, 255, 255)
+            txt.Font = Enum.Font.GothamBold
+            txt.TextSize = 24
+            txt.Text = "Imagem não configurada"
+            txt.TextScaled = true
+            txt.TextWrapped = true
+        end
 
         Instance.new("UICorner", imageLabel).CornerRadius = UDim.new(0, 18)
         local stroke = Instance.new("UIStroke", imageLabel)
