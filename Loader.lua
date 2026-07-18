@@ -58,13 +58,21 @@ do
         sound.SoundId = STARTUP_SOUND_ID
         sound.Volume = 1
         sound.Looped = false
-        sound.Parent = game:GetService("SoundService")
+        sound.Parent = game:GetService("Workspace")
 
-        task.spawn(function()
+        local function playSound()
             pcall(function()
-                sound:Play()
+                if sound and sound.Parent then
+                    sound:Play()
+                end
             end)
-        end)
+        end
+
+        if sound.IsLoaded then
+            playSound()
+        else
+            sound.Loaded:Connect(playSound)
+        end
 
         task.delay(30, function()
             if sound and sound.Parent then
